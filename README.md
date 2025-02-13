@@ -7,3 +7,4 @@ https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de441_part-1.bsp
 https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de441_part-2.bsp
 https://rhodesmill.org/skyfield/
 https://github.com/simlist/pyluach
+https://rhodesmill.org/skyfield/planets.html#choosing-an-ephemeris
