@@ -1,9 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[1]:
-
-
 ####################################################################################################################
                            # מידע כללי על סוג הקובץ ופתיחתו          
 ####################################################################################################################
@@ -25,6 +19,9 @@
 # coding: utf-8
 
 # In[4]:
+
+# רשימת הספריות שצריך להתקין במיוחד לצורך כוכבים וזמנים
+# screeninfo, skyfield, pytz, pyluach, jdcal, clipboard, timezonefinder
 
 
 ####################################################################################################################
@@ -93,6 +90,8 @@ https://ssd.jpl.nasa.gov/tools/jdc/#/jd
                            # משתנה שמחזיק את כל המידע וההסברים לחלון: מידע כללי והסברים          
 ####################################################################################################################
 
+
+
 INFORMATION = ''' מידע כללי והסברים
 
 שימו לב! אם מתג "התוכנה פעילה" אינו מסומן ב-וִי, הפעילות של התוכנה מופסקת ורוב הלחצנים לא פעילים
@@ -130,12 +129,16 @@ INFORMATION = ''' מידע כללי והסברים
 שימו לב! אם האפשרויות הנ"ל לא גורמות לשום שינוי במיקומים, יש לאפס את קובץ המיקומים ואז לנסות שוב
 אם האיפוס לא עוזר, המחשב שלכם יכול לעבוד רק עם המיקומים הבסיסיים של התוכנה
 
-חלון "שלט לבתי כנסת" נועד להציג בצורה מתומצתת את כל הזמנים ההלכתיים החשובים ביותר
+חלון "שעון ההלכה" נועד להציג בצורה מתומצתת את כל הזמנים ההלכתיים החשובים ביותר
 שעון שעה זמנית - לידיעת כל זמני היום, מהנץ לשקיעה, התלויים בשעות זמניות 
 גובה השמש - לידיעת כל זמני היום שלפני הזריחה ושלאחר השקיעה
-כמובן שנדרשת החלטה/ידיעה מהו גובה השמש או השעה הזמנית הדרושים/המקובלים עבור זמן הלכתי מסויים 
-לשם יציאה מחלון "שלט לבתי כנסת" יש ללחוץ על אסקייפ הממוקם בפינה השמאלית העליונה של המקלדת
-חשוב: לשם שינוי שיטה הלכתית של שעות זמניות בחלון זה, יש לשנות שיטה בחלון הראשי של התוכנה
+כמובן שנדרשת ידיעה מהו גובה השמש או השעה הזמנית הדרושים/המקובלים עבור זמן הלכתי מסויים 
+מתחת הכיתוב גרא/מגא מופיע כמה דקות יש בשעה זמנית/שניות בדקה זמנית לכל אחת מהשיטות
+מגא מחושב לפי מינוס 16 מעלות בבוקר ובערב המקביל ל 72 דקות בימי השיוויון
+כבונוס ניתן גם גובה הירח מהאופק, והאחוזים שעבר הירח מתוך מסלולו החודשי ממולד למולד אמיתי
+מתחת הכיתוב שמש/ירח מופיע האזימוט של השמש והירח
+התאריך העברי מתחלף בשקיעה ליום הבא, והמילה "ליל" נוספת לפניו מהשקיעה ועד 12 בלילה
+לשם יציאה מחלון "שעון ההלכה" יש ללחוץ על אסקייפ הממוקם בפינה השמאלית העליונה של המקלדת
 
 דוחות קטנים - בתפריט אפשרויות נוספות
 ניתן לייצר דו"ח של כל זמני היום ליום המבוקש, ולשמור אותו לקובץ
@@ -305,6 +308,14 @@ pyluach
                                     # יבוא החבילות הנדרשות          
 ####################################################################################################################
 
+# מידע על מערכת ההפעלה שבשימוש
+import platform
+
+# משתנה מאוד חשוב שקובע האם מערכת ההפעלה הנוכחית היא ווינדוס כי אם היא לא אז אי אפשר לעשות חלק מהפעולות
+is_windows = platform.system() == "Windows"
+
+# לצורך ניקוי הזיכרון למניעת עומס
+import gc
 
 # לצורך רזולוציית המסך
 import ctypes
@@ -318,14 +329,19 @@ import sys
 import shutil
 
 # יצירת קיצורי דרך לקבצים על שולחן העבודה
-import pythoncom
-from win32com.client import Dispatch
+# זה עובד רק בווינדוס
+if is_windows:
+    try: ############################################### סתם עשיתי ניסיון בגלל שחסר בטוני את הספרייות האלה
+        import pythoncom
+        from win32com.client import Dispatch
+    except:##############################################
+        pass ############################################
 
 # כאשר התוכנה פועלת כתוכנה סגורה יש לייבא לצורך מסך טעינת התוכנה
 if getattr(sys, "frozen", False):
     import pyi_splash
     
-
+    
 # חבילות סקייפילד
 import skyfield
 from skyfield.api import N, S, E, W, wgs84, load, load_file, Angle, Star, EarthSatellite
@@ -347,8 +363,8 @@ import pytz
 #from zoneinfo import ZoneInfo
 import calendar
 
-# ייבוא חבילת גמטריה לצורך התוכנית
-import gematriapy as gy
+# ייבוא חבילת גמטריה כרגע לא צריך
+#import gematriapy as gy
 
 # יבוא חבילת לוח עברי בפייתון
 from pyluach import dates, hebrewcal, parshios, gematria, utils
@@ -364,10 +380,9 @@ import csv
 #import operator
 
 # מידע על שפת הווינדוס וקידוד השפות
-import locale
-
-# מידע על מערכת ההפעלה שבשימוש
-import platform
+# עובד רק בווינדוס
+if is_windows:
+    import locale
 
 # הודעות של טקינטר
 from tkinter import messagebox as tkMessageBox
@@ -380,6 +395,8 @@ from tkinter import *
 import tkinter.font
 from tkinter.filedialog import asksaveasfilename
 
+
+
 # העתקה לקליפ-בוארד
 import clipboard
 
@@ -390,8 +407,9 @@ from urllib.request import urlretrieve
 # תקשורת עם אתרי אינטרנט חלופי ל 
 #import requests
 
-# פתיחת דפדפן אינטרנט
-import webbrowser
+if is_windows:
+    # פתיחת דפדפן אינטרנט
+    import webbrowser
 
 # מציאת איזור זמן לפי קווי אורח ורוחב
 from timezonefinder import TimezoneFinder
@@ -424,7 +442,7 @@ e_color = "gray94"
 cu_encod = "cp1255"
 
 # הגדרת משתנה כללי של קידוד ברירת המחדל במחשב המשתמש
-default_encoding = locale.getpreferredencoding()
+default_encoding = locale.getpreferredencoding() if is_windows else cu_encod
 
 # הגדרת משתנה כללי חשוב מאוד שקובע האם ווינדוס הוא בעברית
 #is_heb_locale = False #locale.getlocale()[0] == 'Hebrew_Israel'
@@ -472,7 +490,7 @@ cu_screenheight = 768
 cu_scaling = 1.32 # כנראה המקורי היה 1.3 אבל למעשה בחרתי 1.32 כי המקורי עשה בעיות וזה כנראה פועל היטב במחשבים גדולים
 
 # תאריך גרסת התוכנה הראשית
-cu_version_date = dt.date(2024,11,6)
+cu_version_date = dt.date(2025,6,8)
 
 
 ####################################################################################################################
@@ -984,8 +1002,14 @@ def eclipse_calculations(time,location,location_timezone,body="sun",PLUS_MINUS="
         # מיקום חלון ההמתנה מעל החלון הראשי
         Waiting_eclipse.wm_transient(ws)
         Waiting_eclipse.title('נא להמתין לחישוב הנתונים' if is_heb_locale else "Please wait for data calculations")
-        icon_path = resource_path("cu_icon.ico")
-        Waiting_eclipse.iconbitmap(icon_path)
+        
+        if is_windows:
+            try:
+                icon_path = resource_path("cu_icon.ico")
+                Waiting_eclipse.iconbitmap(icon_path)
+            except:
+                pass
+        
         msg = "המתינו לטעינת תאריך ושעת הליקוי בשעון העליון\n\nשימו לב: תכונה זו איננה מושלמת\nוייתכן שעלולים להתפספס ליקויים מסויימים"
         en_msg = "Wait for the time of eclipse to be loaded in the upper clock\n\nPlease note: this feature is not perfect\nand it is possible that certain eclipses may be missed"
         Label(Waiting_eclipse, text=msg if is_heb_locale else en_msg, padx=20, pady=20,font="david 20 bold" if is_heb_locale else "david 16 bold",justify="center").pack()
@@ -1658,7 +1682,10 @@ def start_cu_dir_path():
         else:
             msg_box = tkinter.messagebox.askquestion('Opening the Stars and Times folder','\nDo you want to open the Stars and Times folder?\nIf so, be careful not to damage the files in it',icon='warning', default="no")
         if msg_box == 'yes':
-            os.startfile(cu_dir_path)
+            if is_windows:
+                os.startfile(cu_dir_path)
+            else:
+                subprocess.run(['xdg-open', cu_dir_path]) # עבור לינוקס
 
 # פונקצייה לפתיחת אתר האינטרנט של כוכבים וזמנים באמצעות דפדפן ברירת המחדל של המשתמש
 def open_cu_website():
@@ -1880,9 +1907,15 @@ def add_new_location():
         # חלון הוספת המיקום    
         loc = Toplevel(ws)
         loc.geometry(f"{round(500*magnification_factor)}x{round(200*magnification_factor)}+{round(70*magnification_factor)}+{round(200*magnification_factor)}")
-        # קבלת מיקום מוחלט עבור קובץ האייקון
-        icon_path = resource_path("cu_icon.ico")
-        loc.iconbitmap(icon_path)
+        
+        if is_windows:
+            try:
+                # קבלת מיקום מוחלט עבור קובץ האייקון
+                icon_path = resource_path("cu_icon.ico")
+                loc.iconbitmap(icon_path)
+            except:
+                pass
+            
         loc.title("כוכבים וזמנים: הוספת מיקום חדש" if is_heb_locale else "Adding a new location")
         # מיקום חלון הוספת מיקום מעל החלון הראשי
         loc.wm_transient(ws)
@@ -2368,90 +2401,388 @@ def set_menubuttons_times():
         tkMessageBox.showinfo("שגיאה", "עבור המיקום הנוכחי בתאריך הנוכחי, התוכנה אינה יכולה לחשב את זמני זריחות/שקיעות/חצות ")
 
 
-# פונקצייה לפתיחת חלון מידע לבתי כנסת        
-def for_synagoge():
+############################################################################################
+                            # שעון ההלכה למחשב
+############################################################################################
+
+
+hw_version = "5/6/2025"
+
+# משתנה לשליטה על איזה נתונים יוצגו בהסברים במסך של שעון ההלכה בכל שנייה
+current_screen_halach_clock = 0.0  # 
+
+
+def reverse(text):
+    return text if is_windows else text[::-1]
+
+#  ההסברים מורכבים משני חלקים כל אחד: הסבר וערך. ההסבר עובר בסוף רוורס ולכן אם יש בו מספרים חייבים לעשות להם רוורס כאן כדי שהרוורס הסופי יישר אותם 
+esberim = [
+        
+        ["ליציאה לחצו במקלדת על",f"Esc"],
+        ["שעון ההלכה גרסה",f"{hw_version}"],
+        [" מאת: שמחה גרשון בורר - כוכבים וזמנים",""],
+        [reverse("052-7661249 - sgbmzm@gmail.com  "), ""],
+        ["כל הזכויות שמורות - להלן הסברים", ""],
+        
+        [" התאריך העברי מתחלף בשקיעה", ""],
+        
+        [" מתחת גרא/מגא:  דקות בשעה זמנית", ""],
+        [" מתחת שמש/ירח:  אזימוט שמש/ירח", ""],
+        ["אזימוט = מעלות מהצפון, וכדלהלן", ""],
+        [f"צפון={reverse('0/360')}, מז={reverse('90')}, ד={reverse('180')}, מע={reverse('270')}", ""],
+        ["  שלב הירח במסלולו החודשי - באחוזים", ""],
+        [f"מולד={reverse('0/100')}, ניגוד={reverse('50')}, רבעים={reverse('25/75')}", ""],
+    
+        ["רשימת זמני היום בשעות זמניות", ""],
+        ["זריחה ושקיעה במישור", "00:00"],
+        ["סוף שמע ביום/רבע הלילה", "03:00"],
+        ["  סוף תפילה ביום/שליש הלילה", "04:00"],
+        ["חצות יום ולילה", "06:00"],
+        ["מנחה גדולה", "06:30"],
+        ["מנחה קטנה", "09:30"],
+        ["פלג המנחה", "10:45"],
+        [f"מגא מחושב לפי {reverse('-16°')} בבוקר ובערב", ""],
+        
+        ["   זמנים במעלות כשהשמש תחת האופק", ""],
+        ["זריחת ושקיעת מרכז השמש", "0.0°"],
+        ["  זריחה ושקיעה במישור", "-0.833°"],
+        
+        [f"זמני צאת הכוכבים {reverse('3/4')} מיל במעלות", ""],
+        [f"לפי מיל של {reverse('18')} דקות", "-3.65°"],
+        [f"לפי מיל של {reverse('22.5')} דקות", "-4.2°"],
+        [f"לפי מיל של {reverse('24')} דקות", "-4.61°"],
+        ["צאת כוכבים קטנים רצופים", "-6.3°"],
+        
+        ["  מעלות: עלות השחר/צאת כוכבים דרת", ""],
+        [f"לפי 4 מיל של {reverse('18')} דקות", "-16.02°"],
+        [f"לפי 4 מיל של {reverse('22.5')} דקות", "-19.75°"],
+        [f"לפי 5 מיל של {reverse('24')} דקות", "-25.8°"],
+        ["משיכיר/תחילת ציצית ותפילין", "-10.5°"],
+        
+        
+        ["זמנים נוספים", ""],
+        ["להימנע מסעודה בערב שבת", "09:00"],
+        ["סוף אכילת חמץ", "04:00"],
+        ["סוף שריפת חמץ", "05:00"],
+
+        
+        ["להלן תנאי מינימום לראיית ירח ראשונה", ""],
+        [f"שלב {reverse('3%')}; והפרש גובה שמש-ירח {reverse('8°')}", ""],
+    
+    ]  
+
+    
+
+# פונקצייה לפתיחת חלון מידע שעון ההלכה במקום מה שהיה שעון לבתי כנסת       
+# הערה: שעון ההלכה למחשב מבצע חישובים עצמאיים אבל מבוססים על פונקציות כלליות של תוכנת כוכבים וזמנים
+
+def halacha_watch():
     
     # אם כפתור הפעלת החישובים לא פעיל, יש לצאת מייד מהפונקצייה
     if C1.get() != 1:
         return
-       
-    synagoge = Toplevel(ws)
-    # מסך מלא כולל השמטת שורה עליונה
-    synagoge.attributes('-fullscreen', True)
     
-    # הגדרת צבע לכל החלון
-    synagoge.configure(bg=cu_color)
-
+    root_hw = Toplevel(ws)
+    root_hw.attributes('-fullscreen', True)
+    root_hw.configure(bg='black')
+    #root_hw.bind("<Escape>", lambda e: root_hw.destroy())  # יציאה ב-ES
+    
+    global current_screen_halach_clock
+    current_screen_halach_clock = 0.0  # איפוס ההסברים כדי שבהדלקה מחודשת יתחילו מהתחלה
+    
     # פונקצייה מה לעשות בלחיצה על אסקייפ
     def for_Escape():
         choice_time.set("עכשיו (לפי המחשב)")
-        synagoge.destroy()
+        root_hw.destroy()
 
     # בלחיצה על אסקייפ סגירת החלון וכו
-    synagoge.bind("<Escape>", lambda event: for_Escape())
+    root_hw.bind("<Escape>", lambda event: for_Escape())
 
     # מעל כל החלונות האחרים
-    synagoge.attributes('-topmost',True)
-
-    # מסך מלא בלי השמטת שורה עליונה (לא יודע למה, אבל לא עובד בלי זה)
-    synagoge.state('zoomed')
-
-    # הגדרה על מצב חישוב רציף, אם עדיין לא מוגדר על המצב הזה
-    if choice_time.get() != "עכשיו מתעדכן":
-        choice_time.set("עכשיו מתעדכן")
+    root_hw.attributes('-topmost',True)
+    
+    # מסך מלא בלי השמטת שורה עליונה (לא יודע למה, אבל זה עוזר ליציאה בלחיצה על אסקייפ)
+    if is_windows:
+        root_hw.state('zoomed')
+    else:
+        root_hw.attributes('-zoomed', True) # מתאים ללינוקס
+    
+    # ביטול מצב חישוב רציף, אם מוגדר על המצב הזה, כדי לא להכביד על המחשב
+    if choice_time.get() == "עכשיו מתעדכן":
+        choice_time.set("עכשיו (לפי המחשב)")
         # חובה! קריאה לפונקציית כל החישובים כדי שתדע לחזור שוב ושוב על החישובים
         all_calculations()
 
-    # אזור נפרד להזנת תאריך לועזי ושעה
-    sy_temporal_clock1 = cu_PanedWindow(synagoge)
+    # קבלת גודל המסך
+    screen_width = root_hw.winfo_screenwidth()
+    screen_height = root_hw.winfo_screenheight()
 
-    # תאריך לועזי-----------------
+    # פריסת הבסיס שלפיה עיצבתי את המסך
+    base_width = 320
+    base_height = 170
 
-    # כותרת
-    Label(sy_temporal_clock1, text=f"\n שעון שעה זמנית (שיטה נוכחית: {Halachic_method.get()})\n", font= "david 25 bold").grid(column=2, row=0)
-    Label(sy_temporal_clock1, text="\nגובה השמש במעלות מהאופק\n", font= "david 25 bold").grid(column=0, row=0)
+    # חישוב קנה מידה להגדלה
+    scale_x = screen_width / base_width
+    scale_y = screen_height / base_height
+    scale = min(scale_x, scale_y)
 
-    # שעה-----------------------
-    Entry(sy_temporal_clock1,textvariable=print_temporal_hour,state = 'readonly',width=8,font="narkisim 125 bold", justify="center").grid(column=2, row=1)
-    Entry(sy_temporal_clock1,textvariable=print_day_or_night,state = 'readonly',width=4,font="narkisim 50 bold",justify="center").grid(column=1, row=1)
-    Label(sy_temporal_clock1,text="כוכבים\nוזמנים",width=6,font="david 20 bold",justify="center",borderwidth=10, relief="solid").grid(column=1, row=0)
-    Label(sy_temporal_clock1, text="                                                                   ").grid(column=1, row=2)
-    Entry(sy_temporal_clock1,textvariable=sun_alt_for_synagoge,state = 'readonly',width=8,font="narkisim 125 bold", justify="center").grid(column=0, row=1)
-    #Label(sy_temporal_clock1, text="").grid(column=1, row=1)
+    # פונקציה ליצירת גופנים עם קנה מידה
+    def scaled_font(name, size, weight="normal"):
+        return (name, int(size * scale), weight)
 
-    Label(sy_temporal_clock1, text="").grid(column=1, row=2)
+    canvas = tkinter.Canvas(root_hw, width=screen_width, height=screen_height, bg="black", highlightthickness=0)
+    canvas.pack()
 
-    sy_temporal_clock1.pack()
+    # משתנה שמגדיר איזה סוג צבע ירוק יהיה בשימוש לטקסטים שונים בשעון ההלכה
+    hw_green = "lime"
+    
+    # איזור כותרת
+    title_id = canvas.create_text(160 * scale, 10 * scale, text="", fill=hw_green, font=scaled_font("miriam", 12, "bold"))
 
-    Label(synagoge, text= "", font = "david 14 bold").pack()
+    # איזור תאריך עברי
+    heb_date_rect_id = canvas.create_rectangle(0, 20 * scale, screen_width, 40 * scale, fill="black")
+    heb_date_id = canvas.create_text(160 * scale, 30 * scale, text="", fill="white", font=scaled_font("miriam", 14, "bold"))
+    canvas.create_line(0, 45 * scale, screen_width, 45 * scale, fill="yellow")
 
-    sy_temporal_clock2 = cu_PanedWindow(synagoge)
+    # איזור שעה זמנית גרא ומגא
+    canvas.create_text(300 * scale, 55 * scale, text=reverse("גרא") if is_heb_locale else "Gra", fill="white", font=scaled_font("miriam", 13))
+    minutes_in_gra_temporal_hour_id = canvas.create_text(300 * scale, 70 * scale, text="", fill="turquoise", font=scaled_font("miriam", 13))
+    gra_temporal_hour_id = canvas.create_text(210 * scale, 64 * scale, text="", fill=hw_green, font=scaled_font("miriam", 30, "bold"))
 
-    Label(sy_temporal_clock2, text= "תאריך לועזי\n", font = "david 25 bold").grid(column=0, row=2)
-    Entry(sy_temporal_clock2, textvariable=print_greg_date, state = 'readonly',width=31, font="narkisim 35 bold", justify="center").grid(column=0, row=3)
+    canvas.create_text(120 * scale, 55 * scale, text=reverse("מגא") if is_heb_locale else "Mga", fill="white", font=scaled_font("miriam", 13))
+    minutes_in_mga_temporal_hour_id = canvas.create_text(120 * scale, 70 * scale, text="", fill="turquoise", font=scaled_font("miriam", 13))
+    mga_temporal_hour_id = canvas.create_text(53 * scale, 64 * scale, text="", fill=hw_green, font=scaled_font("miriam", 18, "bold"))
+    canvas.create_line(0, 80 * scale, screen_width, 80 * scale, fill="yellow")
 
-    Label(sy_temporal_clock2, text= "          ", font = "david 14 bold").grid(column=1, row=2)
+    # איזור מידע על שמש וירח
+    canvas.create_text(300 * scale, 90 * scale, text=reverse("שמש") if is_heb_locale else "Sun", fill="white", font=scaled_font("miriam", 13))
+    sun_az_id = canvas.create_text(300 * scale, 108 * scale, text="", fill="turquoise", font=scaled_font("miriam", 13))
+    sun_alt_id = canvas.create_text(210 * scale, 102 * scale, text="", fill=hw_green, font=scaled_font("miriam", 30, "bold"))
 
-    Label(sy_temporal_clock2, text= "תאריך עברי\n", font = "david 25 bold").grid(column=2, row=2)
-    Entry(sy_temporal_clock2, textvariable=print_heb_date, state = 'readonly',width=31, font="narkisim 35 bold", justify="center").grid(column=2, row=3)
+    canvas.create_text(120 * scale, 90 * scale, text=reverse("ירח") if is_heb_locale else "Moon", fill="white", font=scaled_font("miriam", 13))
+    moon_az_id = canvas.create_text(120 * scale, 108 * scale, text="", fill="turquoise", font=scaled_font("miriam", 13))
+    moon_alt_id = canvas.create_text(53 * scale, 92 * scale, text="", fill=hw_green, font=scaled_font("miriam", 20, "bold"))
+    moon_phase_id = canvas.create_text(53 * scale, 110 * scale, text="", fill="turquoise", font=scaled_font("miriam", 15, "bold"))
+    canvas.create_line(0, 120 * scale, screen_width, 120 * scale, fill="yellow")
 
-    sy_temporal_clock2.pack()
+    # איזור הסברים מתחלף
+    hesberim_id = canvas.create_text(160 * scale, 132 * scale, text="", fill="white", font=scaled_font("miriam", 15))
+    canvas.create_line(0, 145 * scale, screen_width, 145 * scale, fill="yellow")
 
-    Label(synagoge, text= "\n", font = "david 14 bold").pack()
-    loc = city.get() if city.get() not in ["בחירה-ידנית", "Choose manually"] else f'קו רוחב: {print_location_lat.get()}, קו אורך: {print_location_lon.get()}'
-    Label(synagoge, text= f'שעה בשעון מקומי: {loc} \n', font = "david 25 bold").pack()
-    Entry(synagoge, textvariable=print_time, state = 'readonly',width=8, font="narkisim 125 bold", justify="center").pack()
+    # איזור שעון רגיל ותאריך לועזי ואיזור הזמן
+    utc_offset_id = canvas.create_text(270 * scale, 157 * scale, text="", fill="white", font=scaled_font("miriam", 18))
+    time_id = canvas.create_text(180 * scale, 157 * scale, text="", fill=hw_green, font=scaled_font("miriam", 20, "bold"))
+    greg_date_id = canvas.create_text(65 * scale, 157 * scale, text="", fill="white", font=scaled_font("miriam", 18))
+    
+    #פונקציה לעדכון המסך כל שנייה
+    def update_canvas():
+        
+        # קבלת שעה מקום ואיזור הזמן מהמשתמש
+        _,location,location_timezone=time_location_timezone()
+        
+        # הרגע הנוכחי שעליו מתבצעים כל החישובים
+        # בכוונה תחילה עשיתי את החישוב הרציף באסטימזון ולא בלוקליז כדי שאם לדוגמא המיקום הוא ניו יורק אז השעון יהיה על הזמן בניו יורק
+        time = datetime.now().astimezone(location_timezone)
+        
+        # לצרכי בדיקה בלבד אם רוצים לבדוק רגע ספציפי מסויים
+        #time = datetime(2025, 5, 27, 23, 15, 41, 663945).astimezone(location_timezone)
+
+        ######################################################################
+        
+        
+
+        # חישוב שעה זמנית מגא וגרא
+
+        # חישוב זריחות ושקיעות עבור גרא ומגא באמצעות סקייפילד
+        # החלק העליון של התוכנה פועל תמיד, אבל החלק שתלוי בחישובי זריחה ושקיעה לא פועל במקום שאין בו זריחה ושקיעה בכל יום כגון באיזור הקוטב הצפוני
+        # לכן צריך לנסות, ואם לא מצליחים לחשב שקיעות אז לא לחשב שעות זמניות ולא לחשב כמה שעות עברו מהשקיעה
+        try:
+            # קריאה לפונקציית חישוב שעות זמניות על זריחות ושקיעות בגובה המוגדר לפי הגדרת המשתמש בשעון הזמני
+            # תחילה חישוב הזריחות והשקיעות הדרושות: זריחה ושקיעה של היום עבור שעה זמנית ביום, שקיעה קודמת וזריחה הבאה עבור שעה זמנית בלילה
+
+
+            MGA_Today_SR,MGA_Today_SS,_,_,_,_ = calculate_rising_seting(time,location,location_timezone,horizon=-16, body="sun",PLUS_MINUS = "NONE")
+            _,MGA_LAST_SS,_,_,_,_ = calculate_rising_seting(time,location,location_timezone,horizon=-16, body="sun",PLUS_MINUS = "MINUS")
+            MGA_NEXT_SR,_,_,_,_,_ = calculate_rising_seting(time,location,location_timezone,horizon=-16, body="sun",PLUS_MINUS = "PLUS")
+
+            # חישוב השעות הזמניות לפי הזריחות והשקיעות שהוגדרו לעיל
+            _,_,_,MGA_temporal_hour,MGA_minutes_in_temporal_hour,_=calculate_temporal_hour(time,MGA_Today_SR,MGA_Today_SS,MGA_LAST_SS,MGA_NEXT_SR)
+
+            
+        except IndexError:
+            
+            MGA_temporal_hour = "שגיאה"
+            MGA_minutes_in_temporal_hour = 0.0
+            
+            
+        try:
+            # קריאה לפונקציית חישוב שעות זמניות על זריחות ושקיעות בגובה המוגדר לפי הגדרת המשתמש בשעון הזמני
+            # תחילה חישוב הזריחות והשקיעות הדרושות: זריחה ושקיעה של היום עבור שעה זמנית ביום, שקיעה קודמת וזריחה הבאה עבור שעה זמנית בלילה
+
+
+            GRA_Today_SR,GRA_Today_SS,_,_,_,_ = calculate_rising_seting(time,location,location_timezone,horizon=-0.833, body="sun",PLUS_MINUS = "NONE")
+            _,GRA_LAST_SS,_,_,_,_ = calculate_rising_seting(time,location,location_timezone,horizon=-0.833, body="sun",PLUS_MINUS = "MINUS")
+            GRA_NEXT_SR,_,_,_,_,_ = calculate_rising_seting(time,location,location_timezone,horizon=-0.833, body="sun",PLUS_MINUS = "PLUS")
+
+            # חישוב השעות הזמניות לפי הזריחות והשקיעות שהוגדרו לעיל
+            _,_,_,GRA_temporal_hour,GRA_minutes_in_temporal_hour,_=calculate_temporal_hour(time,GRA_Today_SR,GRA_Today_SS,GRA_LAST_SS,GRA_NEXT_SR)
+
+            # חישוב השעות הזמניות לפי הזריחות והשקיעות שהוגדרו לעיל
+            #day_or_night,Sunrise_determines,Sunset_determines,temporal_hour,minutes_in_temporal_hour,minutes_in_day_or_night=calculate_temporal_hour(time,Today_SR,Today_SS,LAST_SS,NEXT_SR)
+
+        except IndexError:
+            
+            GRA_temporal_hour = "שגיאה"
+            GRA_minutes_in_temporal_hour = 0.0
+            
+            
+        #######################################################################3
+
+        # חישוב אזימוט וגובה של השמש והירח באמצעות סקייפילד
+
+        ts = load.timescale()
+        skyfield_time = ts.from_datetime(time)
+
+        # השמש כפי שנראה/נמדד ממיקום הצופה
+        s_alt, s_az, _ = (eph['earth'] + location).at(skyfield_time).observe(eph['sun']).apparent().altaz()
+
+        # השמש כפי שנראה/נמדד ממיקום הצופה
+        m_alt, m_az, _ = (eph['earth'] + location).at(skyfield_time).observe(eph['moon']).apparent().altaz()
+
+        s_alt = s_alt.degrees
+        s_az = s_az.degrees
+        m_alt = m_alt.degrees
+        m_az = m_az.degrees
+        
+        # חישוב האחוז שהירח עשה מתוך המסלול החודשי שלו
+        # תחילה מחושב במעלות בין 0 ל- 360 ואחר כך אני ממיר לאחוזים בין 0 ל- 100
+        # אמצע החודש יהיה 50 אחוז מהמסלול הרבעים יהיו 25 ו- 75 בהתאמה
+        skyfield_phase = almanac.moon_phase(eph, skyfield_time)
+        moon_phase_percent = skyfield_phase.degrees / 360 * 100
+
+         
+        # חישובי התאריך העברי
+        
+        # משתנה ששומר אם מדובר בזמן שהוא לאחר השקיעה אבל לפני השעה 12 בלילה שאז התאריך העברי העקרוני מקדים ביום את התאריך הלועזי
+        # הסיבה שהגדרתי גם את זה שהשעה היא אחרי 12 בצהריים כי בשעה 1 בלילה זה גם לפני 12 בלילה, ואז לא צריך לכתוב מוצאי כי התאריך הלועזי כבר התחלף
+        heb_date_is_next_greg_date = s_alt <= -0.833 and time.time() > dt.time(12,0,0,0) and time.time() < dt.time(23,59,59,999999)
+        
+        # הגדרת תאריך עברי מקביל לתאריך הלועזי, ולמחרתו
+        heb_date = dates.GregorianDate(1880, 10, 20).from_pydate(time).to_heb()
+        
+        # עדכון התאריך העברי כולל שינוי צבע הרקע של התאריך העברי לפי המשתנה
+        if heb_date_is_next_greg_date:
+            heb_date = heb_date + 1
+        
+        # מהשקיעה עד 12 בלילה מוסיפים את המילה ליל כי היום בשבוע והתאריך העברי מקבלים לתאריך הלועזי של מחר
+        leil_string = reverse("ליל: ") if heb_date_is_next_greg_date else ""
+        
+        # הדפסת התאריך העברי
+        heb_date_string = f'{leil_string}{heb_string_day(heb_date.weekday())}, {heb_date.hebrew_date_string(True)}'
+        
+        # חישוב האם שבת. שבת מוגדרת מהשקיעה של סוף יום שישי עד השקיעה של סוף שבת וכדלעיל
+        is_shabat = heb_date.weekday() == 7
+        
+        # האם המיקום הוא בישראל שכך אין יום טוב שני
+        is_location_in_israel = location_timezone == "Israel"
+        
+        # חישוב האם חג 
+        # prefix_day גורם שיהיה הבדל בין חול המועד לבין יום טוב
+        # אם זה לא חג המשתנה מחזיר None
+        holiday_name = heb_date.holiday(israel=is_location_in_israel, hebrew=True, prefix_day=True)
+        # רק אם החג ברשימה הזו זה יום טוב. אם לא ברשימה הזו זה לא יום טוב אלא חג כמו פורים או חול המועד
+        is_yom_tov = holiday_name in ['ראש השנה', 'יום כיפור', 'סוכות', 'שמיני עצרת', 'שמחת תורה', 'פסח', 'שבועות',]
+        # חישוב האם ראש חודש
+        is_rosh_chodesh = heb_date.day in [30,1]
+        # חישוב האם תענית
+        is_taanit = heb_date.fast_day()
+        # הגדרת חג קטן עבור חול המועד ראש חודש ותעניות
+        lite_holiday = (holiday_name and not is_yom_tov) or is_rosh_chodesh or is_taanit
+        
+        # חלופה לרשימת החגים שהם יום טוב
+        #heb_date.month == 7 and heb_date.day in [1,10,15,22] or heb_date.month == 1 and heb_date.day in [15,22] or heb_date.month == 3 and heb_date.day == 6
+        
+        ###########################################################################
+        
+        
+        # עדכון שורת הכותרת
+        voltage_string = "##%"
+        location_name = reverse(city.get())
+        title = f"  {voltage_string} - {reverse('שעון ההלכה') if is_heb_locale else 'halacha whtch'} - {location_name}"
+        canvas.itemconfig(title_id, text=title)
 
         
+        # איזור תאריך עברי כולל צבע מתאים לימי חול ולשבתות וחגים
+        # צבע הטקסט והרקע של התאריך העברי: ביום חול לבן על שחור ובשבת וחג שחור על צהוב, ובחגים דרבנן כולל תעניות שחור על ציאן
+        HEB_DATE_FG, HEB_DATE_BG  = ("black", "yellow") if is_shabat or is_yom_tov else ("black", "cyan") if lite_holiday else ("white", "black")
+        canvas.itemconfig(heb_date_rect_id, fill=HEB_DATE_BG)
+        canvas.itemconfig(heb_date_id, text=heb_date_string, fill=HEB_DATE_FG)
+       
+        # עדכון שעה זמנית גרא ומגא ודקות בשעה זמנית לכל אחת מהשיטות
+        canvas.itemconfig(minutes_in_gra_temporal_hour_id, text=GRA_minutes_in_temporal_hour)
+        canvas.itemconfig(gra_temporal_hour_id, text=GRA_temporal_hour)
+        canvas.itemconfig(minutes_in_mga_temporal_hour_id, text=MGA_minutes_in_temporal_hour)
+        canvas.itemconfig(mga_temporal_hour_id, text=MGA_temporal_hour)
+
+        # עדכון מידע על השמש והירח גובה אזימוט ושלב בחודש
+        canvas.itemconfig(sun_az_id, text=f"{round(s_az)}°")
+        canvas.itemconfig(sun_alt_id, text=f"{round(s_alt, 3) :2.3f}°")
+        canvas.itemconfig(moon_az_id, text=f"{round(m_az)}°")
+        canvas.itemconfig(moon_alt_id, text=f"{round(m_alt, 3) :2.3f}°")
+        canvas.itemconfig(moon_phase_id, text=f"{moon_phase_percent:2.1f}%")
+        
+        
+        # איזור שורת הסברים מתחלפת
+        global current_screen_halach_clock
+        text = reverse(esberim[int(current_screen_halach_clock)][0])  # רוורס של הטקסט העברי
+        time_value = esberim[int(current_screen_halach_clock)][1]  # הערך להצגה
+        CCC = f"{time_value}  :{text}" if time_value != "" else f"{text}"
+        # עדכון שורת ההסברים
+        canvas.itemconfig(hesberim_id, text=CCC if is_heb_locale else "information", fill="violet") # אפשר להשמיט את fill="violet" ואז הטקסט יהיה לבן כמו שהוגדר לעיל
+        current_screen_halach_clock = (current_screen_halach_clock + 0.3) % len(esberim)  # זה גורם מחזור של שניות לאיזה נתונים יוצגו במסך
+        
+
+        # עדכון תאריך לועזי שעה רגילה ואיזור זמן
+        time_now = time.strftime("%H:%M:%S")
+        greg_date_now = time.strftime("%d/%m/%Y")
+        canvas.itemconfig(utc_offset_id, text=f'utc{time.strftime("%z")[:3]}')
+        canvas.itemconfig(time_id, text=time_now)
+        canvas.itemconfig(greg_date_id, text=greg_date_now)
+        
+        
+        gc.collect() # ניקוי הזיכרון חשוב לפעמים כדי למנוע קריסות מזיכרון עמוס מידי
+           
+
+        # חזרה על העדכון כל שנייה מחדש
+        root_hw.after(500, update_canvas)
+
+
+    # התחלת העדכון
+    update_canvas()
+
+    root_hw.mainloop()
+
+
+############################################################################################
+                            # עד כאן שעון ההלכה למחשב
+############################################################################################
+    
+    
 
         
 # פונקצייה לחלון ההסברים
 def esber():
     esber = Toplevel(ws)
-    # קבלת מיקום מוחלט עבור קובץ האייקון
-    icon_path = resource_path("cu_icon.ico")
-    # הגדרת האייקון על קובץ האייקון במיקומו המוחלט
-    esber.iconbitmap(icon_path)
+    
+    if is_windows:
+        try:
+            # קבלת מיקום מוחלט עבור קובץ האייקון
+            icon_path = resource_path("cu_icon.ico")
+            # הגדרת האייקון על קובץ האייקון במיקומו המוחלט
+            esber.iconbitmap(icon_path)
+        except:
+            pass
+        
     esber.minsize(80,80)
     esber.geometry(f"{round(800*magnification_factor)}x{round(685*magnification_factor)}+{round(100*magnification_factor)}+{round(1*magnification_factor)}")
     # הגדרת צבע לכל החלון
@@ -2538,10 +2869,15 @@ def time_skip(time):
     # מיקום החלון מעל החלון הראשי
     window.wm_transient(ws)
     
-    # קבלת מיקום מוחלט עבור קובץ האייקון
-    icon_path = resource_path("cu_icon.ico")
-    # הגדרת האייקון על קובץ האייקון במיקומו המוחלט
-    window.iconbitmap(icon_path)
+    if is_windows:
+        try:
+            # קבלת מיקום מוחלט עבור קובץ האייקון
+            icon_path = resource_path("cu_icon.ico")
+            # הגדרת האייקון על קובץ האייקון במיקומו המוחלט
+            window.iconbitmap(icon_path)
+        except:
+            pass
+        
     window.minsize(180,310)
     window.geometry(f"{round(180*magnification_factor)}x{round(310*magnification_factor)}+{round(100*magnification_factor)}+{round(120*magnification_factor)}")
     # הגדרת צבע לכל החלון
@@ -2710,7 +3046,7 @@ def time_location_timezone():
                 else:
                     # הגדרה של איזור זמן כללי לפי הפרש מגריניץ. שימו לב שזה נכון במדוייק רק לקו האורך שמתחלק בדיוק ל-15 כגון קו אורך 30 או 45 וכו
                     # לפני שנת 1918 אין שעון קיץ ולדוגמא ישראל תמיד תהיה שעתיים אחרי גריניץ
-                    utc_different = abs(round(location.longitude.degrees/15))
+                    utc_different = abs(round(location.longitude.degrees/15)) % 24
                     location_timezone = timezone(f"Etc/GMT-{utc_different}") if location.longitude.degrees >= 0 else timezone(f"Etc/GMT+{utc_different}")
                     
                 
@@ -2972,7 +3308,6 @@ def print_astro_calculations(time,location,location_timezone):
     s_alt,s_az,ra,dec,ha,dec_N_S,lat,lon,dist,lat_N_S,percent,apparent_diameter,thickness,_,elongation,ecliptic_elongation,elongation_E_W,_,_ = astro_calculations(body,time,location,location_timezone)
     
     # הכנסת החישובים לתוך התאים המתאימים
-    sun_alt_for_synagoge.set(f"{round(s_alt, 3) :2.3f}°")
     # עיגלתי את נתוני גובה השמש במקום החמישי כי הייתה סטייה קטנה בלחיצה על כפתור של: לכוון את השעון העליון לשעה שבה השמש בגובה מסויים
     ##### זה מה שהיה בהתחלה והשארתי בינתיים לסימן    sun_alt.set(f"{format(round(alt, 5), 'f')}°")
     sun_alt.set(f"{round(s_alt, 5) :2.6f}°") 
@@ -4754,8 +5089,14 @@ def export_calendar_halacha_times():
         # מיקום חלון ההמתנה מעל החלון הראשי
         Waiting_halacha_times.wm_transient(ws)
         Waiting_halacha_times.title('נא להמתין לחישוב הנתונים' if is_heb_locale else "Please wait for data calculations")
-        icon_path = resource_path("cu_icon.ico")
-        Waiting_halacha_times.iconbitmap(icon_path)
+        
+        if is_windows:
+            try:
+                icon_path = resource_path("cu_icon.ico")
+                Waiting_halacha_times.iconbitmap(icon_path)
+            except:
+                pass
+            
         msg = f"\nנא המתינו בסבלנות לסיום חישוב הזמנים\nבסיום, תתבקשו לבחור היכן לשמור את הקובץ\n\nאין להשתמש בתוכנה במהלך חישוב הזמנים\nניתן לבטל את חישוב הזמנים על ידי סגירת חלון זה"
         en_msg = f"\nPlease wait patiently for the times calculation to finish\nAt the end, you will be asked to choose where to save the file\n\nDo not use the software during the time calculation\nYou can cancel the time calculation by closing this window"
         Label(Waiting_halacha_times, text=msg if is_heb_locale else en_msg, font="david 16" if is_heb_locale else "david 14",justify="center").pack()
@@ -5562,8 +5903,14 @@ def export_calendar_moons(first_last = "first", events_to_print = "הכל"):
             # מיקום חלון ההמתנה מעל החלון הראשי
             Waiting_moon_times.wm_transient(ws)
             Waiting_moon_times.title('נא להמתין לחישוב הנתונים' if is_heb_locale else "Please wait for data calculations")
-            icon_path = resource_path("cu_icon.ico")
-            Waiting_moon_times.iconbitmap(icon_path) 
+            
+            if is_windows:
+                try:
+                    icon_path = resource_path("cu_icon.ico")
+                    Waiting_moon_times.iconbitmap(icon_path)
+                except:
+                    pass
+                
             msg = f"\nנא המתינו בסבלנות לסיום חישוב ראִיות הירח\nבסיום, תתבקשו לבחור היכן לשמור את הקובץ\n\nאין להשתמש בתוכנה במהלך חישוב הראִיות\nניתן לבטל את חישוב הזמנים על ידי סגירת חלון זה"
             Label(Waiting_moon_times, text=msg, font="david 16",justify="center").pack()
             Label(Waiting_moon_times, text="\nהחודש המחושב כעת", font="david 16",justify="center").pack()
@@ -6133,10 +6480,16 @@ def yom_huledet():
         wnd=Toplevel(ws) # Tk()
         wnd.minsize(660,617)
         wnd.geometry(f"{round(660*magnification_factor)}x{round(685*magnification_factor)}+{round(130*magnification_factor)}+{round(1*magnification_factor)}")
-        # הגדרת האייקון לתוכנה במקרה שסוגרים בקובץ אחד כי צריך מיקום יחסי משתמש בפונקצייה שהובאה לעיל
-        icon_path = resource_path("birthday_icon.ico")
-        # הגדרת האייקון לתוכנה
-        wnd.iconbitmap(icon_path)
+        
+        if is_windows:
+            try:
+                # הגדרת האייקון לתוכנה במקרה שסוגרים בקובץ אחד כי צריך מיקום יחסי משתמש בפונקצייה שהובאה לעיל
+                icon_path = resource_path("birthday_icon.ico")
+                # הגדרת האייקון לתוכנה
+                wnd.iconbitmap(icon_path)
+            except:
+                pass
+            
         wnd.title(f'תוכנת יום הולדת עברי ובר/בת מצווה - מאת הרב ד"ר שמחה גרשון בורר | גרסה:  {dt.date(2023,7,28):%d/%m/%Y}')
         # הגדרת צבע לכל החלון
         wnd.configure(bg=cu_color)
@@ -6900,10 +7253,16 @@ def heb_year_information():
         hyi=Toplevel(ws) # Tk()
         hyi.minsize(675,600)
         hyi.geometry(f"{round(675*magnification_factor)}x{round(685*magnification_factor)}+{round(110*magnification_factor)}+{round(1*magnification_factor)}")
-        # הגדרת האייקון לתוכנה במקרה שסוגרים בקובץ אחד כי צריך מיקום יחסי משתמש בפונקצייה שהובאה לעיל
-        icon_path = resource_path("hyi_icon.ico")
-        # הגדרת האייקון לתוכנה
-        hyi.iconbitmap(icon_path)
+        
+        if is_windows:
+            try:
+                # הגדרת האייקון לתוכנה במקרה שסוגרים בקובץ אחד כי צריך מיקום יחסי משתמש בפונקצייה שהובאה לעיל
+                icon_path = resource_path("hyi_icon.ico")
+                # הגדרת האייקון לתוכנה
+                hyi.iconbitmap(icon_path)
+            except:
+                pass
+            
         hyi.title(f'תוכנת מידע על שנה עברית - מאת הרב ד"ר שמחה גרשון בורר | גרסה: {dt.date(2024,11,4):%d/%m/%Y}')
         #הגדרת צבע לכל החלון
         hyi.configure(bg=cu_color)
@@ -7027,6 +7386,144 @@ def heb_year_information():
 
 
     # In[ ]:
+
+
+# פונקצייה שמחזירה את התאריך הגרגוריאני שבו יחול פסח בשנה נתונה או את התאריך הגרגוריאני שבו יחול ראש השנה שאחרי פסח של השנה הנתונה
+# כברירת מחדל מקבל קלט של שנה לועזית אך יכול לקבל קלט של שנה עברית במספרים אם מגדירים זאת בקריאה לפונקצייה
+# פונקצייה זו נמצאת כאן לשמירה בלבד ואיננה מתפקדת כעת כחלק מתוכנת כוכבים וזמנים
+def get_geus_rosh_hashana_greg(year, from_heb_year = False):
+
+    if from_heb_year:
+        A = year
+        # הגדרת שנה לועזית המקבילה לשנה העברית שהוזנה
+        B = A - 3760
+
+    else:
+        B = year
+        A = B + 3760
+
+    # אינני יודע מה מייצגות שתי ההגדרות הבאות 
+
+    # איי קטנה נותן מספר בין 0 ל- 18 שממנו יודעים האם השנה העברית פשוטה או מעוברת. אם איי קטנה קטן מ-11 השנה היא פשוטה, ואם גדול מ-12 השנה היא מעוברת
+    # בנוסף, ככל שאיי קטנה קרובה יותר למספר 18, זה אומר שפסח רחוק יותר מתקופת ניסן
+    a = (12 * A + 17) % 19
+    
+    # נוסחה לקבל את מספר השנה במחזור השנים הפשוטות והמעוברות לפי איי קטנה
+    # לדוגמא אם איי קטנה שווה 10 אז מספר השנה במחזור 19 השנים הוא 1
+    shana_bemachzor19 = {10:1,3:2,15:3,8:4,1:5,13:6,6:7,18:8,11:9,4:10,16:11,9:12,2:13,14:14,7:15,0:16,12:17,5:18,17:19}.get(a)
+
+    # בי קטנה מציינת האם השנה היוליאנית המקבילה היא פשוטה (365 יום) או כבושה (366 יום). אם אין שארית, השנה היא כבושה
+    b = A % 4
+
+    # נוסחת גאוס בשברים עשרוניים
+    nuscha = 32.0440931611436 + (1.5542417966211826) * a + 0.25 * b - (0.0031777940220922675) * A 
+
+    # נוסחת גאוס בשברים פשוטים
+    #nuscha = 32 + 4343/98496 + (1 + 272953/492480) * a + 1/4 * b - (313/98496) * A
+
+    # אם גדולה זה השלם של הנוסחה
+    # ט"ו בניסן של השנה המבוקשת יחול ביום אם גדולה בחודש מרס
+    M = int(nuscha)
+
+    # אם קטנה היא השארית של הנוסחה, והיא חשובה לצורך הדחיות
+    m = nuscha - int(nuscha)
+
+    # סי הוא היום בשבוע שבו יחול פסח של השנה המבוקשת. אם סי שווה לאפס הכוונה ליום שבת 7
+    c = (M + 3 * A + 5 * b + 5) % 7
+
+    # מידע: דחיית מולד זקן מוכנסת כבר במספר 32 שבנוסחה הראשית
+
+    # חישוב דחיית לא בד"ו פסח שהיא שיקוף של דחיית לא אד"ו ראש
+    if c in (2,4,6):
+        c = c + 1
+        M = M + 1
+    # חישוב השפעת דחיית גטר"ד בשנה פשוטה
+    elif c == 1 and a > 6 and m >= 0.6329:
+        c = c + 2
+        M = M + 2
+    # חישוב השפעת דחיית בטו תקפט בשנה פשוטה שהיא מוצאי מעוברת
+    elif c == 0 and a > 11 and m >= 0.8977:
+        c = c + 1
+        M = M + 1
+    else:
+        c = c
+        M = M
+
+    # טיפול באם היום בשבוע של פסח יוצא אפס זה אומר יום 7 שזה שבת
+    if c == 0:
+        c = c + 7
+
+    # אם אם גדולה קטן או שווה לשלושים ואחד פסח יהיה בחודש מרס
+    if M <= 31:
+        M = M
+        chodesh_julyani_pesach = 3 
+    # במצב הבא התאריך יהיה בחודש אפריל במקום בחודש מרס
+    elif M > 31:
+        M = M - 31
+        chodesh_julyani_pesach = 4
+        
+        
+    # מעבר ללוח הגרגוריאני
+    # חודש מרס הוא תמיד 31 ימים
+
+    if B >= 1582 and B < 1700:
+        M = (M + 10) 
+    elif B >= 1700 and B < 1800:
+        M = (M + 11) 
+    elif B >= 1800 and B < 1900:
+        M = (M + 12) 
+    elif B >= 1900 and B < 2100:
+        M = (M + 13) 
+    elif B >= 2100 and B < 2200:
+        M = (M + 14) 
+    elif B >= 2200 and B < 2300:
+        M = (M + 15) 
+    else:
+        M = M
+
+    # אם אם גדולה קטן או שווה לשלושים ואחד פסח יהיה בחודש מרס
+    if M <= 31:
+        M = M
+        chodesh_gregoriani_pesach = chodesh_julyani_pesach
+
+    # במצב הבא התאריך יהיה בחודש אפריל במקום בחודש מרס
+    elif M > 31:
+        M = M - 31
+        chodesh_gregoriani_pesach = chodesh_julyani_pesach + 1
+
+    pesach_greg_day = M
+    pesach_greg_month = chodesh_gregoriani_pesach
+    pesach_greg_year = B
+    pesach_weekday = c
+    
+    # האם זו שנה עברית מעוברת
+    heb_leap_year = shana_bemachzor19 in (3,6,8,11,14,17,19)
+    #print(f'היום הראשון של פסח בשנה עברית {A} יחול בתאריך הלועזי הגרגוריאני הבא: יום: {M} חודש: {chodesh_gregoriani_pesach} שנה: {B} ויחול ביום {c} בשבוע')   
+
+    
+    #############################################################################################################
+    # מציאת התאריך הלועזי של ראש השנה של השנה הבא לאחר הפסח ראו ספר שערים ללוח העברי עמוד 204
+    next_rosh_hashana_greg_day = pesach_greg_day + 10
+    if pesach_greg_month == 3:
+        next_rosh_hashana_greg_month = 8
+    elif pesach_greg_month == 4:
+        next_rosh_hashana_greg_month = 9
+        
+    next_rosh_hashana_greg_year = pesach_greg_year
+    
+    if next_rosh_hashana_greg_day > 31 and pesach_greg_month == 3:
+        next_rosh_hashana_greg_day = next_rosh_hashana_greg_day - 31
+        next_rosh_hashana_greg_month = 9
+    elif next_rosh_hashana_greg_day > 30 and pesach_greg_month == 4:
+        next_rosh_hashana_greg_day = next_rosh_hashana_greg_day - 30
+        next_rosh_hashana_greg_month = 10
+        
+    #print(next_rosh_hashana_greg_year, next_rosh_hashana_greg_month, next_rosh_hashana_greg_day)
+    ############################################################################################################
+    
+    return (next_rosh_hashana_greg_year,next_rosh_hashana_greg_month,next_rosh_hashana_greg_day)
+
+
 
 ###################################################################################################################
                                  # תחילת תוכנת ממיר תאריכים
@@ -7305,9 +7802,15 @@ def date_converter():
         converter.minsize(450,630)
         converter.geometry(f"{round(450*magnification_factor)}x{round(630*magnification_factor)}+{round(320*magnification_factor)}+{round(1*magnification_factor)}")
         converter.title(f'ממיר תאריכים עברי-לועזי-עברי | גרסה:  {dt.date(2024,11,4):%d/%m/%Y}')
-        # הגדרת האייקון לתוכנה במקרה שסוגרים בקובץ אחד כי צריך מיקום יחסי משתמש בפונקצייה שהובאה לעיל
-        icon_path = resource_path("converter_icon.ico")
-        converter.iconbitmap(icon_path)
+        
+        if is_windows:
+            try:
+                # הגדרת האייקון לתוכנה במקרה שסוגרים בקובץ אחד כי צריך מיקום יחסי משתמש בפונקצייה שהובאה לעיל
+                icon_path = resource_path("converter_icon.ico")
+                converter.iconbitmap(icon_path)
+            except:
+                pass
+            
         # אם רוצים לעשות שהחלון הזה יהיה מעל כל החלונות שבמחשב. זה חשוב בעיקר כאשר רזולוציית המסך מוגדלת
         #converter.attributes('-topmost',True)
         # הגדרת צבע לכל החלון
@@ -7644,8 +8147,15 @@ if __name__ == '__main__':
     magnification_factor = screenheight / cu_screenheight
     # אולי אפשר לעשות ממוצע של הרזולוציה באמצעות אורך ורוחב אבל ספק אם זה יותר טוב
     # average_ratio = (ws.winfo_screenwidth() + ws.winfo_screenheight()) / 2
-    # הגדרה שה- די פי איי יתאים גם כשרזולוציית המסך מוגדלת (במקום טרו, אפשר גם להגדיר 1 או 2) זה גורם שהמחשב יתעלם משינוי קנה מידה של אפליקציות
-    ctypes.windll.shcore.SetProcessDpiAwareness(2)
+    if is_windows:
+        # הגדרה שה- די פי איי יתאים גם כשרזולוציית המסך מוגדלת (במקום טרו, אפשר גם להגדיר 1 או 2) זה גורם שהמחשב יתעלם משינוי קנה מידה של אפליקציות
+        ctypes.windll.shcore.SetProcessDpiAwareness(2)
+        ######################################################################################
+        # מונע מצב שינה וכיבוי מסך
+        ES_CONTINUOUS = 0x80000000
+        ES_DISPLAY_REQUIRED = 0x00000002
+        ctypes.windll.kernel32.SetThreadExecutionState(ES_CONTINUOUS | ES_DISPLAY_REQUIRED)
+        ######################################################################################
     # שינוי קנה המידה של התצוגה במקרה שהרזולוציה של המסך גדולה יותר
     ws.tk.call('tk', 'scaling', cu_scaling*magnification_factor)
     # הגדרת גודל החלון ומיקומו על המסך
@@ -7655,11 +8165,17 @@ if __name__ == '__main__':
     ws.minsize(200,200)
     # אם רוצים למלאות את המסך כל מסך לפי הרזולוצייה שלו יש לפעול לפי השורה הבאה
     #ws.geometry(f'{ws.winfo_screenwidth()}x{ws.winfo_screenheight()}+1+1')
+      
     # הגדרת האייקון לתוכנה
-    # קבלת מיקום מוחלט עבור קובץ האייקון
-    icon_path = resource_path("cu_icon.ico")
-    # הגדרת האייקון על קובץ האייקון במיקומו המוחלט
-    ws.iconbitmap(icon_path)
+    if is_windows:
+        try:
+            # קבלת מיקום מוחלט עבור קובץ האייקון
+            icon_path = resource_path("cu_icon.ico")
+            # הגדרת האייקון על קובץ האייקון במיקומו המוחלט
+            ws.iconbitmap(icon_path)
+        except:
+            pass
+        
     # אם רוצים לעשות שהחלון הזה יהיה מעל כל החלונות שבמחשב. זה חשוב בעיקר כאשר רזולוציית המסך מוגדלת
     #ws.attributes('-topmost',True)
     #  מוגדר להלן לאחר הגדרת השפה הגדרת הכותרת לתוכנה
@@ -7668,6 +8184,17 @@ if __name__ == '__main__':
     
     # הגדרת צבע רקע לכל החלון הראשי
     ws.configure(bg=cu_color)
+    
+    
+    '''
+    # הגדרת הפונט שתרצה שישמש כברירת מחדל בכל היישום
+    import tkinter.font as tkfont
+    # יצירת אובייקט פונט
+    default_font = tkfont.Font(family="Segoe UI", size=9)
+    # הגדרת הפונט כברירת מחדל לכל הוווידג'טים
+    ws.option_add("*Font", default_font)
+    '''
+    
 
     # הגדרות ברירת מחדל להרבה ווידג'טים של טקינטר בכל חלונות התוכנה - חשוב מאוד
     # כל תיבות אנטרי יהיו מושבתות כלומר: לא זמינות למשתמש להעתקה או עריכה
@@ -7691,37 +8218,45 @@ if __name__ == '__main__':
     #l1 = Label(root, text="This", borderwidth=2, relief="groove")
     #"flat", "raised", "sunken", "ridge", "solid", and "groove"
     ######################################################################
+    
     # באיזו שפה התוכנה תיטען
     
-    # הגדרת הכתובת עבור ברירת מחדל של השפה הראשית לתוכנה
-    language_path = cu_dir_path+'\cu_language.txt'
+    # אם מדובר בלינוקס ולא בווינדוס התוכנה תיטען באנגלית
+    if not is_windows:
+        is_heb_locale = False
     
-    # אם יש קובץ להגדרת שפת ברירת המחדל של התוכנה
-    if os.path.exists(language_path):
-        # פתיחת קובץ הגדרת השפה וקריאה של מה שכתוב בו וקביעת שפת השימוש הנוכחית בהתאם למה שכתוב בקובץ
-        with open(language_path, 'r', encoding=cu_encod) as f:
-            language = f.readline()
-            is_heb_locale = False if language in ["English", "english"] else True 
-    
-    # אם אין קובץ להגדרת שפת ברירת מחדל כי זו פתיחה ראשונה של התוכנה אבל שפת מערכת ההפעלה היא עברית הכל מוגדר בעברית והגדרת קובץ שפת ברירת מחדל עברית
-    elif not os.path.exists(language_path) and locale.getlocale()[0] == 'Hebrew_Israel':
-        is_heb_locale = True
-        with open(language_path, 'w', encoding=cu_encod, newline='') as newFile:
-            newFile.write("Hebrew")
+    # בכל מקרה אחר מדובר בווינדוס ואז יש לפעול כדלהלן
+    else:
+        # הגדרת הכתובת עבור ברירת מחדל של השפה הראשית לתוכנה
+        language_path = cu_dir_path+'\cu_language.txt'
         
-    # אם אין קובץ להגדרת בחירת שפה אבל שפת מערכת ההפעלה לא בעברית
-    elif not os.path.exists(language_path) and locale.getlocale()[0] != 'Hebrew_Israel':
-        # יש לשאול את המשתמש האם הוא רוצה להמשיך באנגלית. אם הוא רוצה התוכנה תיפתח באנגלית וגם יגרום שאנגלית תהיה ברירת המחדל מכאן והלאה
-        # אם הוא לא רוצה להמשיך באנגלית התוכנה תיפתח בעברית וגם יגרום שעברית תהיה ברירת המחדל מכאן והלאה
-        # השפה של הכיתובים בתוכנה תלוייה במשתנה is_heb_locale       
-        ask = 'We noticed that your operating system is in English. The cochavim uzmanim software was built in Hebrew. Part of the software has been translated into English, but it is recommended to display everything in Hebrew. You can always change the default language in the "More options" menu.\nDo you want to continue in English?'
-        msg_box = tkinter.messagebox.askquestion(f'cochavim uzmanim Language choosing',ask ,icon='warning', default="no")
-        is_heb_locale = False if msg_box == 'yes' else True
-        language_to_write = "English" if msg_box == 'yes' else "Hebrew"
-        # כתיבת הקובץ המתאים לבחירת המשתמש
-        with open(language_path, 'w', encoding=cu_encod, newline='') as newFile:
-            newFile.write(language_to_write)
-                
+        # אם יש קובץ להגדרת שפת ברירת המחדל של התוכנה
+        if os.path.exists(language_path):
+            # פתיחת קובץ הגדרת השפה וקריאה של מה שכתוב בו וקביעת שפת השימוש הנוכחית בהתאם למה שכתוב בקובץ
+            with open(language_path, 'r', encoding=cu_encod) as f:
+                language = f.readline()
+                is_heb_locale = False if language in ["English", "english"] else True 
+        
+        # אם אין קובץ להגדרת שפת ברירת מחדל כי זו פתיחה ראשונה של התוכנה אבל שפת מערכת ההפעלה היא עברית הכל מוגדר בעברית והגדרת קובץ שפת ברירת מחדל עברית
+        elif not os.path.exists(language_path) and locale.getlocale()[0] == 'Hebrew_Israel':
+            is_heb_locale = True
+            with open(language_path, 'w', encoding=cu_encod, newline='') as newFile:
+                newFile.write("Hebrew")
+            
+        # אם אין קובץ להגדרת בחירת שפה אבל שפת מערכת ההפעלה לא בעברית
+        elif not os.path.exists(language_path) and locale.getlocale()[0] != 'Hebrew_Israel':
+            # יש לשאול את המשתמש האם הוא רוצה להמשיך באנגלית. אם הוא רוצה התוכנה תיפתח באנגלית וגם יגרום שאנגלית תהיה ברירת המחדל מכאן והלאה
+            # אם הוא לא רוצה להמשיך באנגלית התוכנה תיפתח בעברית וגם יגרום שעברית תהיה ברירת המחדל מכאן והלאה
+            # השפה של הכיתובים בתוכנה תלוייה במשתנה is_heb_locale       
+            ask = 'We noticed that your operating system is in English. The cochavim uzmanim software was built in Hebrew. Part of the software has been translated into English, but it is recommended to display everything in Hebrew. You can always change the default language in the "More options" menu.\nDo you want to continue in English?'
+            msg_box = tkinter.messagebox.askquestion(f'cochavim uzmanim Language choosing',ask ,icon='warning', default="no")
+            is_heb_locale = False if msg_box == 'yes' else True
+            language_to_write = "English" if msg_box == 'yes' else "Hebrew"
+            # כתיבת הקובץ המתאים לבחירת המשתמש
+            with open(language_path, 'w', encoding=cu_encod, newline='') as newFile:
+                newFile.write(language_to_write)
+        
+    
     # הגדרת כותרת התוכנה לפי השפה שבשימוש כרגע
     if not is_heb_locale:
         ws.title(f'cochavim uzmanim +dates: by Rabbi Dr. Simcha Gershon Bohrer | Version: {cu_version_date:%d/%m/%Y} {"installed" if is_installed else "non-installed"}')
@@ -7784,7 +8319,7 @@ if __name__ == '__main__':
     # הגדרת משתנה שמחזיק את הבחירה של תפריט הבחירה
     choice_print = StringVar(ws)
     
-    mb.menu.add_command ( label="שֶׁלֶט דיגיטלי לבתי כנסת" if is_heb_locale else "Digital board for synagogues", command=for_synagoge)
+    mb.menu.add_command ( label="שעון ההלכה" if is_heb_locale else "halacha_watch", command=halacha_watch)
     mb.menu.add_radiobutton ( label="רשימת כוכבי שֶׁבֶת ראשונים הנראים אחרי השקיעה" if is_heb_locale else "List of first stars after sunset",variable=choice_print, value="STARS_EVENING", command=print_halachic_times )
     mb.menu.add_radiobutton ( label="רשימת כוכבי שֶׁבֶת אחרונים הנראים לפני הזריחה" if is_heb_locale else "List of last stars before sunset",variable=choice_print, value="STARS_MORNING", command=print_halachic_times )
     mb.menu.add_radiobutton ( label="רשימת זמני היום" if is_heb_locale else "List of day halachic times",variable=choice_print, value="ZMANIM", command=print_halachic_times )
@@ -7985,7 +8520,6 @@ if __name__ == '__main__':
     sun_dec = StringVar(ws)
     sun_ha = StringVar(ws)
     sun_dist = StringVar(ws)
-    sun_alt_for_synagoge = StringVar(ws)
 
     Label(results, text="שמש" if is_heb_locale else "Sun", font="david 16 bold",width=10, relief="groove",bg="white").grid(column=4, row=0)
 
