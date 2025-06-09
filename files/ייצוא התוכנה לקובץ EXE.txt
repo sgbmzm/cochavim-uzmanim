@@ -1,0 +1,19 @@
+pyinstaller --noconsole --onefile --splash=cu_splash.jpg --add-data "cochavim_uzmanim_plus.py;." --add-data "cu_help.py;." --add-data "cu_locations.csv;." --add-data "cu_stars.csv;." --add-data "cu_splash.jpg;." --add-data "de440.bsp;." --add-data "skyfield;skyfield" --add-data "cu_icon.ico;." --add-data "hyi_icon.ico;." --add-data "converter_icon.ico;." --add-data "birthday_icon.ico;." -i"cu_icon.ico" cochavim_uzmanim_plus.py
+
+אפשרות עליונה זו לא עדכנית בעניין הקבצים הנלווים. יש להשתמש בקובץ המיפרט
+
+לפני הכל צריך לחלץ את תיקיית סקייפילד המצורפת ולשים אותה בתוך התיקייה שממנה סוגרים את "כוכבים וזמנים" לקובץ EXE אחרת התוכנה לא תעבוד.
+
+כל מחשב בעל מעבד שונה צריך סגירה נפרדת לקובץ תוכנה ושהיא תתבצע באותו מחשב. לדוגמא: לינוקס עם מעבד אינטל, לינוקס עם מעבד ארם, ווינדוס עם מעבד אינטל. וכדומה.
+
+הסבר חשוב! קודם כל יש ליצור קובץ עם דיר שזה תוכנה בלי הקבצים הנלווים, ולשים את הקובץ בתיקיית ההתקנה
+ורק אז ליצור קובץ בלי דיר.
+הקובץ עם דיר משמש להתקנה קבועה של התוכנה ואם לא יעשו כנ"ל, אז ההתקנה הקבועה תתקין גרסה ישנה
+של התוכנה
+
+אם מתוך קובץ מפרט: 
+pyinstaller cochavim_uzmanim_plus.spec
+pyinstaller cochavim_uzmanim_plus_dir.spec
+
+יצירת קובץ מיפרט
+pyi-makespec cochavim_uzmanim_plus.py
