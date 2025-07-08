@@ -398,6 +398,7 @@ import tkinter as Tkinter
 import tkinter
 from tkinter import ttk, PanedWindow
 from tkinter import *
+import tkinter.font as tkfont
 import tkinter.font
 from tkinter.filedialog import asksaveasfilename
 
@@ -496,7 +497,7 @@ cu_screenheight = 768
 cu_scaling = 1.32 # כנראה המקורי היה 1.3 אבל למעשה בחרתי 1.32 כי המקורי עשה בעיות וזה כנראה פועל היטב במחשבים גדולים
 
 # תאריך גרסת התוכנה הראשית
-cu_version_date = dt.date(2025,6,8)
+cu_version_date = dt.date(2025,7,8)
 
 
 ####################################################################################################################
@@ -2412,7 +2413,7 @@ def set_menubuttons_times():
 ############################################################################################
 
 
-hw_version = "5/6/2025"
+hw_version = "8/7/2025"
 
 # משתנה לשליטה על איזה נתונים יוצגו בהסברים במסך של שעון ההלכה בכל שנייה
 current_screen_halach_clock = 0.0  # 
@@ -2427,7 +2428,7 @@ esberim = [
         ["ליציאה לחצו במקלדת על",f"Esc"],
         ["שעון ההלכה גרסה",f"{hw_version}"],
         [" מאת: שמחה גרשון בורר - כוכבים וזמנים",""],
-        [reverse("052-7661249 - sgbmzm@gmail.com  "), ""],
+        [reverse("sgbmzm@gmail.com"), ""],
         ["כל הזכויות שמורות - להלן הסברים", ""],
         
         [" התאריך העברי מתחלף בשקיעה", ""],
@@ -2484,18 +2485,23 @@ esberim = [
 
 def halacha_watch():
     
+    global current_screen_halach_clock
+    current_screen_halach_clock = 0.0  # איפוס ההסברים כדי שבהדלקה מחודשת יתחילו מהתחלה
+    
     # אם כפתור הפעלת החישובים לא פעיל, יש לצאת מייד מהפונקצייה
     if C1.get() != 1:
         return
     
     root_hw = Toplevel(ws)
+    ##############################################
+    # חובה!!!!! לעשות את זה כדי לבטל את הסקאלינג הרגיל של כוכבים וזמנים הכללי שהותאם למסך במקדם הגדלה
+    # בשעון ההלכה שמגיע נפרד לא עושים את זה. זה נצרך רק לשעון ההלכה שבתוך תוכנת כוכבים
+    root_hw.tk.call('tk', 'scaling', cu_scaling) 
+    ##############################################
     root_hw.attributes('-fullscreen', True)
     root_hw.configure(bg='black')
     #root_hw.bind("<Escape>", lambda e: root_hw.destroy())  # יציאה ב-ES
-    
-    global current_screen_halach_clock
-    current_screen_halach_clock = 0.0  # איפוס ההסברים כדי שבהדלקה מחודשת יתחילו מהתחלה
-    
+     
     # פונקצייה מה לעשות בלחיצה על אסקייפ
     def for_Escape():
         choice_time.set("עכשיו (לפי המחשב)")
@@ -2520,8 +2526,14 @@ def halacha_watch():
         all_calculations()
 
     # קבלת גודל המסך
-    screen_width = root_hw.winfo_screenwidth()
-    screen_height = root_hw.winfo_screenheight()
+    #screen_width = root_hw.winfo_screenwidth()
+    #screen_height = root_hw.winfo_screenheight()
+    # שימוש בזה במקום באפשרות הקודמת כי זה לוקח את גודל המסך האמיתי גם כאשר המסך מוגדל כברירת מחדל של ווינדוס ואם לא כך יש תקלות תצוגה
+    # ובתוך כוכבים וזמנים כך צריך לעשות לשעון ההלכה כדי שיהיה מסך מלא גם במחשבים עם מסך בקנה מידה מוגדל כברית מחדל
+    # אך בשעון ההלכה כשמגיע לבד לא בתוך כוכבים וזמנים עושים את האפשרות הקודמת
+    screen_width = screeninfo.get_monitors()[0].width  
+    screen_height = screeninfo.get_monitors()[0].height 
+
 
     # פריסת הבסיס שלפיה עיצבתי את המסך
     base_width = 320
@@ -2531,7 +2543,7 @@ def halacha_watch():
     scale_x = screen_width / base_width
     scale_y = screen_height / base_height
     scale = min(scale_x, scale_y)
-
+    
     # פונקציה ליצירת גופנים עם קנה מידה
     def scaled_font(name, size, weight="normal"):
         return (name, int(size * scale), weight)
@@ -2686,6 +2698,10 @@ def halacha_watch():
         # הדפסת התאריך העברי
         heb_date_string = f'{leil_string}{heb_string_day(heb_date.weekday())}, {heb_date.hebrew_date_string(True)}'
         
+        # בלינוקס צריך לשנות את הסדר בגלל בעיית תצוגת עברית
+        if not is_windows:
+            heb_date_string = f'{reverse(heb_date.hebrew_date_string(True))} ,{reverse(heb_string_day(heb_date.weekday()))}{leil_string}'
+        
         # חישוב האם שבת. שבת מוגדרת מהשקיעה של סוף יום שישי עד השקיעה של סוף שבת וכדלעיל
         is_shabat = heb_date.weekday() == 7
         
@@ -2713,7 +2729,7 @@ def halacha_watch():
         
         # עדכון שורת הכותרת
         voltage_string = "##%"
-        location_name = reverse(city.get())
+        location_name = reverse(city.get()) if is_heb_locale else city.get() # אם התוכנה באנגלית אז שם המיקום באנגלית ולא צריך רוורס
         title = f"  {voltage_string} - {reverse('שעון ההלכה') if is_heb_locale else 'halacha whtch'} - {location_name}"
         canvas.itemconfig(title_id, text=title)
 
@@ -2744,8 +2760,8 @@ def halacha_watch():
         time_value = esberim[int(current_screen_halach_clock)][1]  # הערך להצגה
         CCC = f"{time_value}  :{text}" if time_value != "" else f"{text}"
         # עדכון שורת ההסברים
-        canvas.itemconfig(hesberim_id, text=CCC if is_heb_locale else "information", fill="violet") # אפשר להשמיט את fill="violet" ואז הטקסט יהיה לבן כמו שהוגדר לעיל
-        current_screen_halach_clock = (current_screen_halach_clock + 0.3) % len(esberim)  # זה גורם מחזור של שניות לאיזה נתונים יוצגו במסך
+        canvas.itemconfig(hesberim_id, text=CCC if is_heb_locale else "information") # אפשר להשמיט את fill="violet" ואז הטקסט יהיה לבן כמו שהוגדר לעיל
+        current_screen_halach_clock = (current_screen_halach_clock + 0.25) % len(esberim)  # זה גורם מחזור של שניות לאיזה נתונים יוצגו במסך
         
 
         # עדכון תאריך לועזי שעה רגילה ואיזור זמן
@@ -8150,7 +8166,8 @@ if __name__ == '__main__':
     #print(f"Screen Resolution: {screenwidth}x{screenheight}")
     # קביעת מקדם ההגדלה או ההקטנה שהוא היחס באחוזים בין רזולוציית המסך הנוכחית לבין רזולוציית המסך שבו נבנתה התוכנה. כרגע מוגדר לפי גובה המסך
     # כי הגובה של התוכנה תופס כמעט את כל גובה המסך ולכן הוא הכי משמעותי בתוכנה זו
-    magnification_factor = screenheight / cu_screenheight
+    #magnification_factor = screenheight / cu_screenheight
+    magnification_factor = min(screenwidth / cu_screenwidth, screenheight / cu_screenheight) ############################### ניסיון חדש
     # אולי אפשר לעשות ממוצע של הרזולוציה באמצעות אורך ורוחב אבל ספק אם זה יותר טוב
     # average_ratio = (ws.winfo_screenwidth() + ws.winfo_screenheight()) / 2
     if is_windows:
@@ -8163,7 +8180,7 @@ if __name__ == '__main__':
         ctypes.windll.kernel32.SetThreadExecutionState(ES_CONTINUOUS | ES_DISPLAY_REQUIRED)
         ######################################################################################
     # שינוי קנה המידה של התצוגה במקרה שהרזולוציה של המסך גדולה יותר
-    ws.tk.call('tk', 'scaling', cu_scaling*magnification_factor)
+    ws.tk.call('tk', 'scaling', cu_scaling*magnification_factor) # סקאלינג לא עובד בלינוקס
     # הגדרת גודל החלון ומיקומו על המסך
     ws.geometry(f"{round(685*magnification_factor)}x{round(685*magnification_factor)}+{round(0*magnification_factor)}+{round(1*magnification_factor)}")
     #print(magnification_factor)
@@ -8893,7 +8910,26 @@ if __name__ == '__main__':
     # חובה!!! קודם עדכון ידני של חלון התוכנה כדי שהוא לא יתעכב עד ביצוע הבדיקה האם התוכנה עדכנית
     #####ws.update()
     is_cu_software_update(manual=False)
+    
+    
+    # בודק האם מותקן במחשב גופנים מרים ודוד שדרושים לתצוגה טובה של כוכבים וזמנים וגופן מירים שדרוש לתצוגה טובה של שעון ההלכה
+    is_heb_fonts = "Narkisim" and "David" and "Miriam" in tkfont.families() # and "Segoe UI"
+    # אם הגופנים ההלו לא מותקנים במערכת ההפעלה
+    if not is_heb_fonts:
+        # הודעה בעברית אם התוכנה מוצגת בעברית
+        if is_heb_locale:
+            tkMessageBox.showinfo(reverse("התרעה"), reverse("שלושת הגופנים: 'נרקיסים, דוד, מרים' מווינדוס, חייבים להיות מותקנים בתיקיית הפונטים של מערכת ההפעלה לצורך תצוגה נכונה"))
+        # אם התוכנה באנגלית - ההודעה באנגלית
+        else:
+            tkMessageBox.showinfo("warning", "The three fonts: 'Narkisim, David, Miriam' from Windows, must be installed in the operating system's fonts folder for correct display")
+        # מחזיר את הפוקוס לחלון הראשי כי אחרת אי אפשר לצאת מהתוכנה בלחיצה על אסקייפ או לשנות מיקומים בלחצני החיצים
+        ws.focus_force()
+
+    
     #---------------------------------------------
     # בין אם יש רישיון ובין אם אין רישיון חייבת להיות לולאה אינסופית על החלון הראשי כך
     ws.mainloop()
+
+
+
 
