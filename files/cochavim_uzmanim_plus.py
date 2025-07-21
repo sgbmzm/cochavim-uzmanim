@@ -27,7 +27,7 @@
 # In[4]:
 
 # רשימת הספריות שצריך להתקין במיוחד לצורך כוכבים וזמנים
-# screeninfo, skyfield, pytz, pyluach, jdcal, clipboard, timezonefinder, gematriapy
+# pip install screeninfo, skyfield, pytz, pyluach, jdcal, clipboard, timezonefinder, gematriapy
 
 
 ####################################################################################################################
