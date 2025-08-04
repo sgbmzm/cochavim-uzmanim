@@ -7,7 +7,7 @@ block_cipher = None
 a = Analysis(
     ['cochavim_uzmanim_plus.py'],
     pathex=[],
-    binaries=[],
+    binaries=[('vcruntime140.dll', '.')],
     datas=[('cu_icon.ico', '.'), ('hyi_icon.ico', '.'), ('converter_icon.ico', '.'), ('birthday_icon.ico', '.'), ('cochavim_uzmanim_plus.py', '.'), ('cu_locations.csv', '.'), ('cu_stars.csv', '.'), ('cu_splash.jpg', '.'), ('de440.bsp', '.'), ('skyfield', 'skyfield'),],
     hiddenimports=[],
     hookspath=[],
@@ -60,3 +60,4 @@ coll = COLLECT(
     upx_exclude=[],
     name='cochavim_uzmanim_plus_dir',
 )
+
