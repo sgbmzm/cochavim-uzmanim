@@ -497,7 +497,7 @@ cu_screenheight = 768
 cu_scaling = 1.32 # כנראה המקורי היה 1.3 אבל למעשה בחרתי 1.32 כי המקורי עשה בעיות וזה כנראה פועל היטב במחשבים גדולים
 
 # תאריך גרסת התוכנה הראשית
-cu_version_date = dt.date(2025,7,8)
+cu_version_date = dt.date(2025,8,26)
 
 
 ####################################################################################################################
@@ -737,6 +737,32 @@ def kama_tkufat_nissan_shmuel_lifnei_mold_nisan(heb_year):
     # תשובה בחלוקה ליום שעה וחלק
     tshuva = convert_from_chalakim(abs(tshuva_bechalakim))
     return tshuva
+
+# פונקצייה להחזרת מספר השנים שחלפו מאז חורבן בית שני
+def get_shana_lechurban_bait_sheni(heb_year_int):
+    shnat_hachurban = 3830
+    if heb_year_int < shnat_hachurban:
+        return f"שנת {abs(heb_year_int - shnat_hachurban + 2)} !לפני! חורבן בית המקדש השני שאירע בשנת ג'תתל (שנת 70 לספירת הנוצרים)"
+    return f"שנת {heb_year_int - shnat_hachurban + 1} לחורבן בית המקדש השני שאירע בשנת ג'תתל (שנת 70 לספירת הנוצרים)"
+
+# פונקצייה שמקבלת מספר שנה עברית ומחזירה איזו שנה לשמיטה והאם זו שנת מעשר עני
+def get_shana_lashmita_and_maasrot(heb_year_int):
+    A = heb_year_int % 7
+    shana_lashmita = 7 if A == 0 else A
+    shnat_maasrot = "מעשר שני" if shana_lashmita in [1,2,4,5] else "מעשר עני" if shana_lashmita in [3,6] else "שמיטה-הפקר: אין תרומות ומעשרות"
+    return shana_lashmita, shnat_maasrot
+
+# הגדרת פונקציית מציאת מספר השנה במחזור 28 שנות חמה לתקופת שמואל המכונה "מחזור גדול", עם תנאי ש 0 שווה 28 וכן מספר המחזור שאוחזים בו
+# הפונקצייה גם מחזירה האם השנה מעוברת או לא
+def chishuv_shana_bemachzor_28(heb_year):
+    machzor_28 = int(heb_year / 28) + 1 
+    shana_bemachzor_28 = heb_year % 28
+    if shana_bemachzor_28 == 0:
+        shana_bemachzor_28 = 28  
+        machzor_28 -= 1   
+    return shana_bemachzor_28, machzor_28
+
+    
 
 
 ####################################################################################################################
@@ -2413,7 +2439,7 @@ def set_menubuttons_times():
 ############################################################################################
 
 
-hw_version = "8/7/2025"
+hw_version = "23/8/2025_CU"
 
 # משתנה לשליטה על איזה נתונים יוצגו בהסברים במסך של שעון ההלכה בכל שנייה
 current_screen_halach_clock = 0.0  # 
@@ -2603,7 +2629,7 @@ def halacha_watch():
         time = datetime.now().astimezone(location_timezone)
         
         # לצרכי בדיקה בלבד אם רוצים לבדוק רגע ספציפי מסויים
-        #time = datetime(2025, 5, 27, 23, 15, 41, 663945).astimezone(location_timezone)
+        #time = datetime(2025, 7, 25, 20, 5, 45, 663945).astimezone(location_timezone)
 
         ######################################################################
         
@@ -2728,7 +2754,7 @@ def halacha_watch():
         
         
         # עדכון שורת הכותרת
-        voltage_string = "##%"
+        voltage_string = "**%"
         location_name = reverse(city.get()) if is_heb_locale else city.get() # אם התוכנה באנגלית אז שם המיקום באנגלית ולא צריך רוורס
         title = f"  {voltage_string} - {reverse('שעון ההלכה') if is_heb_locale else 'halacha whtch'} - {location_name}"
         canvas.itemconfig(title_id, text=title)
@@ -7086,6 +7112,11 @@ def heb_year_information():
         def heb_year_string(heb_year, thousands=True, withgershayim=True):
             return gematria._num_to_str(heb_year, thousands=thousands, withgershayim=withgershayim)
         
+        # קבלת מידע על השנה לשמיטה למעשרות ולחורבן ולמחזור 28 שנות חמה באמצעות פונקציות שהגדרתי למעלה
+        shana_lashmita, shnat_maasrot = get_shana_lashmita_and_maasrot(shana1)
+        shana_lechurban_bait_sheni = get_shana_lechurban_bait_sheni(shana1)
+        shana_1_bemachzor_28, machzor_28_shana_1 = chishuv_shana_bemachzor_28(shana1)
+        
         #-----------------------------------------------------------------------
         ############  כל ההדפסות ###############
 
@@ -7123,6 +7154,18 @@ def heb_year_information():
         txt.insert("end","\n[אות ימנית: יום בשבוע שיחול בו ראש השנה]")
         txt.insert("end","\n[אות אמצעית: האם השנה ח = חסרה, כ = כסדרה, או: ש = שלמה]")
         txt.insert("end","\n[אות שמאלית: יום בשבוע שיחול בו חג ראשון של פסח]")
+        
+        # הדפסות מידע על נתונים נוספים על השנה שנה לשמיטה למעשרות ולחורבן
+        txt.insert("end", "\n\n—————————————————————")
+        txt.insert("end", "\n\nמידע נוסף על השנה המבוקשת")
+        txt.insert("end", "\n")
+        txt.insert("end", f'\nמספר השנה במניין שמות השמיטה הוא:   {shana_lashmita}')
+        txt.insert("end", f'\nלפיכך, המעשר שמפרישים השנה הוא:   {shnat_maasrot}')
+        txt.insert("end", f'\nשימו לב שלגבי פירות האילן, שנת המעשרות הנוכחית נכונה רק החל מיום ט"ו בשבט')
+        txt.insert("end", f'\nמספר השנה המבוקשת במחזור קטן (19 שנים פשוטות ומעוברות) הוא: {shana_1_bemachzor_19}   (במחזור {machzor_19_shana_1})') 
+        txt.insert("end", f'\nמספר השנה המבוקשת במחזור גדול (28 שנות חמה) הוא: {shana_1_bemachzor_28}   (במחזור {machzor_28_shana_1})')
+        txt.insert("end", f'\n(מספר השנה במחזור הגדול, נכון רק החל מיום תקופת ניסן לשיטת שמואל והלאה - ראו להלן)')
+        txt.insert("end", f"\nזוהי {shana_lechurban_bait_sheni}")
 
         # הדפסות מידע על נתונים נוספים שאפשר להסיק מתוך סימן השנה
         txt.insert("end", "\n\n—————————————————————")
@@ -7285,7 +7328,7 @@ def heb_year_information():
             except:
                 pass
             
-        hyi.title(f'תוכנת מידע על שנה עברית - מאת הרב ד"ר שמחה גרשון בורר | גרסה: {dt.date(2024,11,4):%d/%m/%Y}')
+        hyi.title(f'תוכנת מידע על שנה עברית - מאת הרב ד"ר שמחה גרשון בורר | גרסה: {dt.date(2024,8,26):%d/%m/%Y}')
         #הגדרת צבע לכל החלון
         hyi.configure(bg=cu_color)
         
