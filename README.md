@@ -5,6 +5,9 @@
 **Modification is strictly prohibited.** You may use it as-is, but you may not edit, modify, or alter its content.  
 **Commercial use is forbidden.** If you wish to use `cochavim_uzmanim_plus` for business or organizational purposes, please contact the author.  
 
+**Direct link to download the latest version for Windows:**
+https://github.com/sgbmzm/cochavim-uzmanim/releases/download/cochavim_uzmanim_plus/cochavim_uzmanim_plus.exe
+
 Other files in this repository may have different licensing terms.
 
 I would especially like to mention and thank the following important things that are freely licensed and I use them:
