@@ -2996,15 +2996,34 @@ def time_scale_showinfo():
                                # הפונקציות הראשיות שמפעילות את התוכנה
 ####################################################################################################################
 
-# פונקצייה להורדת קבצים נדרשים
-def downloading_required_files():
+# פונקצייה להורדת קובץ לתיקיית הקבצים של כוכבים וזמנים כולל חלון התקדמות
+def downloading_files(url_string, file_name_string):
+    """
+    הורדת קובץ מהאינטרנט עם חלון התקדמות וביטול.
+    הקובץ יישמר בשם file_name_string בתיקיית cu_dir_path.
+    """
     if is_heb_locale:
-        msg_box = tkMessageBox.askquestion('אישור הורדת קבצים', '\nהאם אתה בטוח שברצונך להוריד את הקבצים?')
+        msg_box = tkMessageBox.askquestion('אישור הורדת קבצים', f'\nהאם אתה בטוח שברצונך להוריד את הקובץ "{file_name_string}"?')
     else:
-        msg_box = tkMessageBox.askquestion('Confirm file download', '\nAre you sure you want to download the files?')
+        msg_box = tkMessageBox.askquestion('Confirm file download', f'\nAre you sure you want to download the file "{file_name_string}"?')
 
     if msg_box != 'yes':
         return  # המשתמש ביטל את ההורדה
+
+    file_path = os.path.join(cu_dir_path, file_name_string)
+    
+    # אם הקובץ כבר קיים לא ממשיכים הלאה
+    if os.path.exists(file_path):
+        tkMessageBox.showinfo(
+                "הודעה" if is_heb_locale else "Message",
+                f"הקובץ: \n'{file_name_string}' \nכבר קיים בתיקיית: {cu_dir_path}"
+                if is_heb_locale else
+                f"File: \n'{file_name_string}' \nAlready exists in dir: {cu_dir_path}"
+            )
+        return
+
+    # שימוש בקובץ זמני
+    temp_path = file_path + ".part"
 
     progress_win = Tkinter.Toplevel(ws)
     progress_win.title("הורדת קובץ" if is_heb_locale else "Downloading file")
@@ -3024,12 +3043,9 @@ def downloading_required_files():
     cancel_button = Tkinter.Button(progress_win, text="בטל" if is_heb_locale else "Cancel", command=cancel_download)
     cancel_button.pack(padx=10, pady=5)
 
-    de441s_url = "https://github.com/sgbmzm/cochavim-uzmanim/releases/download/cochavim_uzmanim_plus/de441s.bsp"
-    de441s_path = os.path.join(cu_dir_path, "de441s.bsp")
-
     def download():
         try:
-            with urlopen(de441s_url) as response, open(de441s_path, 'wb') as out_file:
+            with urlopen(url_string) as response, open(temp_path, 'wb') as out_file:
                 total = int(response.headers.get('Content-Length', 0))
                 downloaded = 0
                 block_size = 8192
@@ -3044,9 +3060,9 @@ def downloading_required_files():
 
                     out_file.write(buffer)
                     downloaded += len(buffer)
-                    progress = (downloaded / total) * 100
+                    progress = (downloaded / total) * 100 if total > 0 else 0
                     mb_done = downloaded / (1024 * 1024)
-                    mb_total = total / (1024 * 1024)
+                    mb_total = total / (1024 * 1024) if total > 0 else 0
                     progress_bar["value"] = progress
                     progress_label.config(
                         text=f"{mb_done:.2f}/{mb_total:.2f} MB ({progress:.1f}%)"
@@ -3056,11 +3072,9 @@ def downloading_required_files():
                     progress_win.update_idletasks()
 
             # ביטול או הורדה חלקית
-            if cancel_flag.is_set() or downloaded < total:
-                progress_label.config(text="מוחק קובץ חלקי..." if is_heb_locale else "Deleting partial file...")
-                progress_win.update_idletasks()
+            if cancel_flag.is_set() or (total > 0 and downloaded < total):
                 try:
-                    os.remove(de441s_path)
+                    os.remove(temp_path)
                 except:
                     pass
                 tkMessageBox.showinfo(
@@ -3068,25 +3082,26 @@ def downloading_required_files():
                     "ההורדה בוטלה והקובץ נמחק" if is_heb_locale else "Download cancelled, file deleted"
                 )
                 progress_win.destroy()
-                return  # יוצאים מהפונקציה
+                return
 
-            # הורדה מוצלחת
+            # הצלחה
+            os.rename(temp_path, file_path) # שינוי שם הקובץ הזמני לשם הקובץ הסופי שצריך להיות
             tkMessageBox.showinfo(
                 "הודעה" if is_heb_locale else "Message",
-                "הקובץ הורד בהצלחה. התוכנה תיסגר ותופעל מחדש."
+                f"הקובץ '{file_name_string}' הורד בהצלחה. התוכנה תיסגר וצריך להפעילה מחדש."
                 if is_heb_locale else
-                "File downloaded successfully. The program will now close and restart."
+                f"File '{file_name_string}' downloaded successfully. The program will now close and need to restart."
             )
             ws.destroy()
 
         except Exception as e:
             try:
-                os.remove(de441s_path)
+                os.remove(temp_path)
             except:
                 pass
             tkMessageBox.showerror(
                 "שגיאה" if is_heb_locale else "Error",
-                f"שגיאה בהורדת הקובץ:\n{e}" if is_heb_locale else f"Error downloading file:\n{e}"
+                f"שגיאה בהורדת הקובץ '{file_name_string}':\n{e}" if is_heb_locale else f"Error downloading file '{file_name_string}':\n{e}"
             )
             progress_win.destroy()
 
@@ -8487,7 +8502,10 @@ if __name__ == '__main__':
     mb.menu.add_command ( label="פתיחת תיקיית כוכבים וזמנים" if is_heb_locale else "Opening the cochavim uzmanim folder", command=start_cu_dir_path)
     mb.menu.add_command ( label="בדיקה האם גרסת התוכנה עדכנית" if is_heb_locale else "Checking software version update", command=is_cu_software_update)
     mb.menu.add_command ( label="פתיחת אתר האינטרנט של תוכנת כוכבים וזמנים" if is_heb_locale else "Opening cochavim uzmanim website", command=open_cu_website)
-    mb.menu.add_command ( label="הורדת קבצים נדרשים" if is_heb_locale else "Downloading required files", command=downloading_required_files)
+    # הגדרות עבור קובץ אפאמאריס מורחב שאותו רוצים להוריד
+    de441s_url = "https://github.com/sgbmzm/cochavim-uzmanim/releases/download/cochavim_uzmanim_plus/de441s.bsp"
+    de441s_file_name = "de441s.bsp"
+    mb.menu.add_command ( label="הורדת de441s.bsp" if is_heb_locale else "Downloading de441s.bsp", command= lambda: downloading_files(de441s_url,de441s_file_name))
     
     # אם זו גרסת תוכנה שאינה מותקנת הוספת כפתור התקנה
     if not is_installed:
