@@ -27,7 +27,7 @@
 # In[4]:
 
 # רשימת הספריות שצריך להתקין במיוחד לצורך כוכבים וזמנים
-# pip install screeninfo, skyfield, pytz, pyluach, jdcal, clipboard, timezonefinder, gematriapy
+# pip install screeninfo skyfield pytz pyluach jdcal clipboard tzfpy gematriapy  ########### timezonefinder
 
 
 ####################################################################################################################
@@ -419,16 +419,21 @@ if is_windows:
     import webbrowser
 
 # מציאת איזור זמן לפי קווי אורח ורוחב
-from timezonefinder import TimezoneFinder
+#######from timezonefinder import TimezoneFinder
+from tzfpy import get_tz
 
 # אישורים של תעודות אבטחה לצורך נטפרי ועוד
 import certifi
 
-# הורדת קבצים מגוגל דרייב
-#import gdown # זה מכביד ממש על המערכת
+# היכן תהיה תיקיית הקבצים הדרושים עבור התוכנה
+from platformdirs import user_data_dir
 
 # פתיחת קבצי פייתון או תוכנות מתוך התוכנה הנוכחית
-#import subprocess
+# משמש גם לפתיחת תיקיית קבצי התוכנה בווינדוס ובלינוקד במקום startfile שעבד רק בווינדוס
+import subprocess
+
+# עשיית פעולות במקביל בלי לתקוע את כל התוכנה. משמש בעיקר בהורת קבצים
+import threading
 
 # בדיקת תהליכים פעילים וסגירתם
 #import psutil
@@ -497,9 +502,14 @@ cu_screenheight = 768
 cu_scaling = 1.32 # כנראה המקורי היה 1.3 אבל למעשה בחרתי 1.32 כי המקורי עשה בעיות וזה כנראה פועל היטב במחשבים גדולים
 
 # תאריך גרסת התוכנה הראשית
-cu_version_date = dt.date(2025,8,26)
+cu_version_date = dt.date(2025,10,9)
 
-
+# פונקצייה שמחזירה שם יחד עם מיקום של קובץ בתיקיית תוכנת כוכבים וזמנים
+'''
+def get_cu_join_path(file_name_str):
+    global cu_dir_path
+    return os.path.join(cu_dir_path, file_name_str)
+'''
 ####################################################################################################################
             # פונקציות פשוטות שיש מה להשתמש בהן גם בקודים אחרים ואינן שייכות דווקא לממשק הגראפי או לסקייפילד
 ####################################################################################################################
@@ -1506,26 +1516,17 @@ def text_orientation(text):
 
 # הגדרות בסיסיות עבור התוכנה    
 def get_defaults():   
-        
-    # כתובת עבור תיקיית הקבצים לצורך קבצים משתנים של התוכנה 
-    cu_dir_path = fr"{os.environ.get('HOMEDRIVE')}{os.environ.get('HOMEPATH')}\AppData\Roaming\cochavim_uzmanim"
-    #cu_dir_path = os.path.expanduser("~\AppData\Roaming\cochavim_uzmanim")
     
-    ###############################
-    # כל הטיפול בתיקייה הישנה הוא זמני לצורך המשתמשים הישנים של התוכנה
-    # טיפול במקרה שיש תיקייה בשם הישן והמוטעה בלי אות אייץ': ניסיון שינוי שם התיקייה מהשם הישן המוטעה לשם החדש הנכון
-    try:
-        os.rename(fr"{os.environ.get('HOMEDRIVE')}{os.environ.get('HOMEPATH')}\AppData\Roaming\cocavim_uzmanim", cu_dir_path)
-    except:
-        pass
-    ###############################
+    # נתיב לתיקיית הנתונים של קבצים הדרושים לתוכנה בתיקית המשתמש במערכת ההפעלה
+    # עשיתי roaming=True בגלל שבגרסאות הקודמות התיקייה הייתה בתוך רומינג ולא רציתי שיאבדו הקבצים למשתמשים הקודמים
+    cu_dir_path = user_data_dir(appname="cochavim_uzmanim", appauthor=False, roaming=True) # roaming=False
     
-    # במידה ולא קיימת תיקיית הקבצים של התוכנה, יצירת תיקייה עבור קבצים משתנים של תוכנת כוכבים וזמנים בתוך אפפדאטא-רומינג
-    if not os.path.exists(cu_dir_path):
-        os.mkdir(cu_dir_path)
+    # יצירת התיקייה אם לא קיימת ולא תהיה שגיאה אם כן קיימת
+    os.makedirs(cu_dir_path, exist_ok=True)
+    
 
     # הגדרת המיקום הראשון של שני קבצי האפאמאריס בתיקיית כוכבים וזמנים
-    eph_440_path_1 = rf"{cu_dir_path}\de440.bsp"
+    eph_440_path_1 = rf"{cu_dir_path}\de440.bsp" 
     eph_441s_path_1 = rf"{cu_dir_path}\de441s.bsp"
     
     # הגדרת המיקום השני של שני קבצי האפאמאריס בתיקייה שבה התוכנה פועלת כרגע במיקום המוחלט הבא
@@ -1549,21 +1550,21 @@ def get_defaults():
     input_years_range = [f"{i:02.0f}" for i in range(1,3000)]
     
     # הגדרת הכתובת עבור קובץ המיקומים הערוך שהוא קובץ המיקומים העדכני ביותר 
-    locations_path = cu_dir_path+'\locations_edited.csv'
-
+    locations_edited_path = rf"{cu_dir_path}\locations_edited.csv"
+    
     #######################
+    '''
     # כל הטיפול בשם קובץ המיקומים הערוך הישן הוא זמני לצורך המשתמשים הישנים של התוכנה
-    if os.path.exists(cu_dir_path+'\מיקומים-ערוך.csv') and not os.path.exists(cu_dir_path+'\locations_edited.csv'):      
+    if os.path.exists(cu_dir_path+'\מיקומים-ערוך.csv') and not os.path.exists(locations_edited_path):      
         # שינוי שמו של קובץ המיקומים הערוך מהשם הישן לשם החדש
         try:
-            os.rename(cu_dir_path+'\מיקומים-ערוך.csv', cu_dir_path+'\locations_edited.csv')
+            os.rename(cu_dir_path+'\מיקומים-ערוך.csv', locations_edited_path)
         except:
-            pass  
+            pass
+    '''
     ######################
-    
-    # אם אין קובץ בשם "מיקומים-ערוך" בתיקיית התוכנה באפפ-דאטה, אז יש לקבל מיקום מוחלט של קובץ המיקומים הדיפולטי שנמצא בתיקיית ההתקנה
-    if not os.path.exists(locations_path):
-        locations_path = resource_path('cu_locations.csv')
+          
+    locations_path = locations_edited_path if os.path.exists(locations_edited_path) else resource_path('cu_locations.csv')
     
     # הגדרת מיקום מוחלט של קובץ הכוכבים הדיפולטי שנמצא בתיקיית ההתקנה
     stars_path = resource_path('cu_stars.csv')
@@ -1577,7 +1578,7 @@ def get_defaults():
     # השגיאה המתקבלת כאשר טווח השנים לא קיים באפמאריס
     #skyfield.errors.EphemerisRangeError
 
-    return eph, eph_440, eph_441s, state1, input_years_range, locations_path, stars_path, cu_dir_path, is_installed
+    return eph, eph_440, eph_441s, state1, input_years_range, locations_path, locations_edited_path, stars_path, cu_dir_path, is_installed
 
 
 # פונקצייה עם כמה אופציות לעריכת שינויים בקובץ המיקומים הערוך
@@ -1602,7 +1603,7 @@ def edit_locations_file(location = "NONE"):
     else:
     
         # קבלת הגדרות ברירות מחדל עבור התוכנה באמצעות פונקצייה
-        _, _, _, _, _, locations_path,_, cu_dir_path,_ = get_defaults()
+        _, _, _, _, _, locations_path,locations_edited_path,_, cu_dir_path,_ = get_defaults()
         
         # טעינת קובץ המיקומים מתוך המיקום המוחלט
         with open(locations_path, 'r', encoding=cu_encod) as myFile:
@@ -1686,24 +1687,12 @@ def edit_locations_file(location = "NONE"):
         if msg_box == 'yes':
             
             # כתיבת הנתונים המתוקנים לתוך קובץ חדש שיאוכסן בתיקיייה של התוכנה באפפ-דאטה ובפעם הבאה שיפתחו את התוכנה המיקומים ייקראו מהמיקום החדש
-            with open(f'{cu_dir_path}\locations_edited.csv', 'w', encoding=cu_encod, newline='') as newFile:
+            with open(locations_path, 'w', encoding=cu_encod, newline='') as newFile:
                 myWriter = csv.writer(newFile)
                 # כתיבת כל המיקומים לאותו קובץ
                 myWriter.writerows(locations_data)
                 # סגירת התוכנה כדי שבפעם הבאה התוכנה תיפתח מיד במיקום ברירת מחדל החדש
                 ws.destroy()
-
-'''
-# פונקצייה לפתיחת קובץ המיקומים הערוך לצורך עריכתו והוספת מיקום ידני        
-#### כרגע פונקציה זו הוצאה משימוש כי ניתן להוסיף ולמחוק מיקומים דרך התוכנה עצמה
-def start_the_edited_locations_file():
-    if os.path.exists(cu_dir_path+'\locations_edited.csv'):
-        # שאילה האם המשתמש בטוח שברצונו לפתוח את קובץ המיקומים הערוך
-        msg_box = tkinter.messagebox.askquestion('פתיחת קובץ המיקומים לצורך עריכתו','\nהאם ברצונך לפתוח את קובץ המיקומים לצורך עריכתו?\nאם כן, הקובץ ייפתח ויש לעורכו לפי ההוראות ב: מידע כללי והסברים',
-                                            icon='warning', default="no")
-        if msg_box == 'yes':
-            os.startfile(cu_dir_path+'\locations_edited.csv')
-            '''
 
             
 # פונקצייה לפתיחת תיקיית כוכבים וזמנים        
@@ -1715,10 +1704,7 @@ def start_cu_dir_path():
         else:
             msg_box = tkinter.messagebox.askquestion('Opening the Stars and Times folder','\nDo you want to open the Stars and Times folder?\nIf so, be careful not to damage the files in it',icon='warning', default="no")
         if msg_box == 'yes':
-            if is_windows:
-                os.startfile(cu_dir_path)
-            else:
-                subprocess.run(['xdg-open', cu_dir_path]) # עבור לינוקס
+            subprocess.run(["explorer" if is_windows else "xdg-open", str(cu_dir_path)])
 
 # פונקצייה לפתיחת אתר האינטרנט של כוכבים וזמנים באמצעות דפדפן ברירת המחדל של המשתמש
 def open_cu_website():
@@ -1733,23 +1719,14 @@ def is_cu_software_update(manual=True):
     # הצהרה על משתנה גלובלי שמכיל מידע על תאריך הגרסה הנוכחית של התוכנה
     global cu_version_date
 
-    # קישור לדף הראשי של האתר שלך
-    url = "http://sites.google.com/view/cochavim-uzmanim/"
+    # קישור לקובץ שבו מעודכן תאריך הגרסה האחרונה הקיימת
+    url = "https://raw.githubusercontent.com/sgbmzm/cochavim-uzmanim/main/cu_version.txt"
 
     # ניסיון כי אולי אין חיבור לאינטרנט. אם אין חיבור מוציאים הודעה ומפסיקים את הפעולה
     try:
         # קריאת הטקסט שבאתר בעזרת ספריית urllib.request
-        lines = urlopen(url).read().decode('utf-8').split('\n')
-
-        # קריאת הטקסט שבאתר וחלוקתו לשורות בעזרת ספריית request לא פעיל כרגע כי נעשה שימוש בספריית urllib.request
-        #lines = requests.get(url).text.split('\n')
-        
-        # מציאת השורה שכתוב בה תאריך גרסה ובה במיקום ה- 2 נמצא התאריך. אחרי המציאה הראשונה יש לעצור את החיפוש
-        for line in lines:
-            if "תאריך גרסה" in line:
-                date_string = line.strip().split(" ")[2]
-                date_object = datetime.strptime(date_string, "%d/%m/%Y").date()
-                break
+        date_string = urlopen(url).read().decode('utf-8').strip()
+        date_object = datetime.strptime(date_string, "%d/%m/%Y").date()
         
         # הגדרת מה נקרא שהגרסה מעודכנת
         is_apdate = cu_version_date >= date_object
@@ -1845,13 +1822,13 @@ def install_cu():
       
     try:        
         # נתיב התיקייה כולל השם החדש לאחר העתקתה
-        destination_path = cu_dir_path+'\cu_installation'
+        destination_path = rf"{cu_dir_path}\cu_installation"
         
         # הנתיב החדש לקובץ ההפעלה של התוכנה המותקנת
-        cu_dir_exe_new_path = cu_dir_path+'\cu_installation\cochavim_uzmanim_plus_dir.exe'
+        cu_dir_exe_new_path = rf"{cu_dir_path}\cu_installation\cochavim_uzmanim_plus_dir.exe"
         
         # הנתיב החדש לסקריפט פייתון המקורי של התוכנה למקרה שאני רוצה למחוק אותו כדי שהמשתמש לא יראה את הקוד המלא
-        cu_script_new_path = cu_dir_path+'\cu_installation\cochavim_uzmanim_plus.Py'
+        cu_script_new_path = rf"{cu_dir_path}\cu_installation\cochavim_uzmanim_plus.py"
         
         # אם יש כבר תיקייה בשם של תיקיית היעד יש למחוק אותה כי אחרת אי אפשר להעתיק תחת שם זה
         # זה טוב לי כי אז כל התיקייה תעודכן
@@ -1915,13 +1892,13 @@ def install_cu():
 # מיועד לשימוש במקרה של עדכון התוכנה
 def delete_edited_locations_file():
     # אם קיים קובץ מיקומים ערוך יש להקפיץ הודעת אישור למחיקת הקובץ ואם יש אישור אז הקובץ נמחק
-    if os.path.exists(cu_dir_path+'\locations_edited.csv'):
+    if os.path.exists(locations_edited_path):
         if is_heb_locale:
             msg_box = tkinter.messagebox.askquestion('איפוס קובץ המיקומים', 'אזהרה! פעולה זו אינה ניתנת לביטול\nהאם אתה בטוח שברצונך לאפס את קובץ המיקומים?\nאם כן, התוכנה תיסגר ויש להפעילה מחדש',icon='warning', default="no")
         else:
             msg_box = tkinter.messagebox.askquestion('Resetting the locations file', 'Warning! This action cannot be undone\nAre you sure you want to reset the locations file?\nIf so, the software will close and must be restarted',icon='warning', default ="no")
         if msg_box == 'yes':
-            os.remove(cu_dir_path+'\locations_edited.csv')
+            os.remove(locations_edited_path)
             ws.destroy()
 
 # פונקצייה להוספת מיקום חדש לקובץ המיקומים הערוך דרך התוכנה עצמה              
@@ -1988,7 +1965,8 @@ def add_new_location():
                 # אם אין בשדה הגובה כלום - אז הגובה שווה אפס עשרוני
                 elev = float(elev) if elev else 0.0
                 # חישוב איזור הזמן לפי קו האורך והרוחב כרגע בוטל ויחושב בטעינת התוכנה הבאה לאחר ההוספה
-                #tzone = TimezoneFinder().timezone_at(lng=long, lat=latit)
+                ###########tzone = TimezoneFinder().timezone_at(lng=long, lat=latit)
+                #tzone = get_tz(long, latit)
 
             # אם יש בעיה, להודיע למשתמש
             except ValueError:
@@ -2048,7 +2026,7 @@ def change_default_language():
     global is_heb_locale
     
     # הגדרת הכתובת עבור קובץ ברירת מחדל של השפה הראשית לתוכנה
-    language_path = cu_dir_path+'\cu_language.txt'
+    language_path = rf"{cu_dir_path}\cu_language.txt"
     
     # שאילה האם המשתמש בטוח שברצונו לשנות את מיקום ברירת המחדל של התוכנה
     if is_heb_locale:
@@ -2082,7 +2060,7 @@ def start():
 
 
 # פונקצייה לקבלת המיקומים וכל המידע עליהם
-def get_locations(locations_path,cu_dir_path):
+def get_locations(locations_path,locations_edited_path,cu_dir_path):
     
     # טעינת קובץ המיקומים מתוך המיקום המוחלט
     with open(locations_path, 'r', encoding=cu_encod) as myFile:
@@ -2108,10 +2086,11 @@ def get_locations(locations_path,cu_dir_path):
 
             # אם אין איזור זמן בעמודת איזור הזמן, יש למצוא את איזור הזמן באמצעות המיקום הגיאוגרפי ולהגדיר אותו במקום המתאים
             if locations_data[i][4] == "":
-                locations_data[i][4] = TimezoneFinder().timezone_at(lng=float(locations_data[i][2]), lat=float(locations_data[i][1]))
+                ######locations_data[i][4] = TimezoneFinder().timezone_at(lng=float(locations_data[i][2]), lat=float(locations_data[i][1]))
+                locations_data[i][4] = get_tz(float(locations_data[i][2]), float(locations_data[i][1]))
 
             # כתיבת הנתונים המתוקנים לתוך קובץ חדש שיאוכסן בתיקיייה של התוכנה באפפ-דאטה ובפעם הבאה שיפתחו את התוכנה המיקומים ייקראו מהמיקום החדש
-            with open(f'{cu_dir_path}\locations_edited.csv', 'w', encoding=cu_encod, newline='') as newFile:
+            with open(locations_edited_path, 'w', encoding=cu_encod, newline='') as newFile:
                 myWriter = csv.writer(newFile)
                 myWriter.writerows(locations_data)
      
@@ -2127,9 +2106,9 @@ def get_locations(locations_path,cu_dir_path):
         locations.append({"skyfield_location": wgs84.latlon(location_lat, location_lon, location_elevation), "timezone_location": timezone_location, "location_name_heb": location_name_heb, "location_name_en": location_name_en})
     
     # במקרה שאין קובץ מיקומים ערוך בתיקיית אפפ-דאטא, צריך לשים שם קובץ זה כדי שהמשתמש יוכל לערוך אותו
-    if not os.path.exists(cu_dir_path+'\locations_edited.csv'):
+    if not os.path.exists(locations_edited_path):
         # כתיבת הנתונים המתוקנים לתוך קובץ חדש שיאוכסן בתיקיייה של התוכנה באפפ-דאטה ובפעם הבאה שיפתחו את התוכנה המיקומים ייקראו מהמיקום החדש
-        with open(f'{cu_dir_path}\locations_edited.csv', 'w', encoding=cu_encod, newline='') as newFile:
+        with open(locations_edited_path, 'w', encoding=cu_encod, newline='') as newFile:
             myWriter = csv.writer(newFile)
             myWriter.writerows(locations_data)
            
@@ -2174,10 +2153,11 @@ def get_stars(stars_path,cu_dir_path):
 
             # אם אין איזור זמן בעמודת איזור הזמן, יש למצוא את איזור הזמן באמצעות המיקום הגיאוגרפי ולהגדיר אותו במקום המתאים
             if locations_data[i][4] == "":
-                locations_data[i][4] = TimezoneFinder().timezone_at(lng=float(locations_data[i][2]), lat=float(locations_data[i][1]))
+                ######locations_data[i][4] = TimezoneFinder().timezone_at(lng=float(locations_data[i][2]), lat=float(locations_data[i][1]))
+                locations_data[i][4] = get_tz(float(locations_data[i][2]), float(locations_data[i][1]))
 
             # כתיבת הנתונים המתוקנים לתוך קובץ חדש שיאוכסן בתיקיייה של התוכנה באפפ-דאטה ובפעם הבאה שיפתחו את התוכנה המיקומים ייקראו מהמיקום החדש
-            with open(f'{cu_dir_path}\locations_edited.csv', 'w', encoding=cu_encod, newline='') as newFile:
+            with open(locations_edited_path, 'w', encoding=cu_encod, newline='') as newFile:
                 myWriter = csv.writer(newFile)
                 myWriter.writerows(locations_data)
         '''
@@ -2203,9 +2183,9 @@ def get_stars(stars_path,cu_dir_path):
         
     '''
     # במקרה שאין קובץ מיקומים ערוך בתיקיית אפפ-דאטא, צריך לשים שם קובץ זה כדי שהמשתמש יוכל לערוך אותו
-    if not os.path.exists(cu_dir_path+'\locations_edited.csv'):
+    if not os.path.exists(locations_edited_path):
         # כתיבת הנתונים המתוקנים לתוך קובץ חדש שיאוכסן בתיקיייה של התוכנה באפפ-דאטה ובפעם הבאה שיפתחו את התוכנה המיקומים ייקראו מהמיקום החדש
-        with open(f'{cu_dir_path}\locations_edited.csv', 'w', encoding=cu_encod, newline='') as newFile:
+        with open(locations_edited_path, 'w', encoding=cu_encod, newline='') as newFile:
             myWriter = csv.writer(newFile)
             myWriter.writerows(locations_data)
     '''  
@@ -3015,7 +2995,104 @@ def time_scale_showinfo():
 ####################################################################################################################
                                # הפונקציות הראשיות שמפעילות את התוכנה
 ####################################################################################################################
-        
+
+# פונקצייה להורדת קבצים נדרשים
+def downloading_required_files():
+    if is_heb_locale:
+        msg_box = tkMessageBox.askquestion('אישור הורדת קבצים', '\nהאם אתה בטוח שברצונך להוריד את הקבצים?')
+    else:
+        msg_box = tkMessageBox.askquestion('Confirm file download', '\nAre you sure you want to download the files?')
+
+    if msg_box != 'yes':
+        return  # המשתמש ביטל את ההורדה
+
+    progress_win = Tkinter.Toplevel(ws)
+    progress_win.title("הורדת קובץ" if is_heb_locale else "Downloading file")
+
+    progress_label = Tkinter.Label(progress_win, text="מתחיל בהורדה..." if is_heb_locale else "Starting download...")
+    progress_label.pack(padx=10, pady=5)
+
+    progress_bar = ttk.Progressbar(progress_win, length=300, mode="determinate")
+    progress_bar.pack(padx=10, pady=5)
+
+    cancel_flag = threading.Event()
+
+    def cancel_download():
+        cancel_flag.set()
+        progress_label.config(text="הביטול התבקש, מוחק קובץ חלקי..." if is_heb_locale else "Cancellation requested, deleting partial file...")
+
+    cancel_button = Tkinter.Button(progress_win, text="בטל" if is_heb_locale else "Cancel", command=cancel_download)
+    cancel_button.pack(padx=10, pady=5)
+
+    de441s_url = "https://github.com/sgbmzm/cochavim-uzmanim/releases/download/cochavim_uzmanim_plus/de441s.bsp"
+    de441s_path = os.path.join(cu_dir_path, "de441s.bsp")
+
+    def download():
+        try:
+            with urlopen(de441s_url) as response, open(de441s_path, 'wb') as out_file:
+                total = int(response.headers.get('Content-Length', 0))
+                downloaded = 0
+                block_size = 8192
+
+                while True:
+                    if cancel_flag.is_set():
+                        break
+
+                    buffer = response.read(block_size)
+                    if not buffer:
+                        break
+
+                    out_file.write(buffer)
+                    downloaded += len(buffer)
+                    progress = (downloaded / total) * 100
+                    mb_done = downloaded / (1024 * 1024)
+                    mb_total = total / (1024 * 1024)
+                    progress_bar["value"] = progress
+                    progress_label.config(
+                        text=f"{mb_done:.2f}/{mb_total:.2f} MB ({progress:.1f}%)"
+                        if not is_heb_locale else
+                        f"{progress:.1f}% ({mb_done:.2f}/{mb_total:.2f} מגהבייט)"
+                    )
+                    progress_win.update_idletasks()
+
+            # ביטול או הורדה חלקית
+            if cancel_flag.is_set() or downloaded < total:
+                progress_label.config(text="מוחק קובץ חלקי..." if is_heb_locale else "Deleting partial file...")
+                progress_win.update_idletasks()
+                try:
+                    os.remove(de441s_path)
+                except:
+                    pass
+                tkMessageBox.showinfo(
+                    "הודעה" if is_heb_locale else "Message",
+                    "ההורדה בוטלה והקובץ נמחק" if is_heb_locale else "Download cancelled, file deleted"
+                )
+                progress_win.destroy()
+                return  # יוצאים מהפונקציה
+
+            # הורדה מוצלחת
+            tkMessageBox.showinfo(
+                "הודעה" if is_heb_locale else "Message",
+                "הקובץ הורד בהצלחה. התוכנה תיסגר ותופעל מחדש."
+                if is_heb_locale else
+                "File downloaded successfully. The program will now close and restart."
+            )
+            ws.destroy()
+
+        except Exception as e:
+            try:
+                os.remove(de441s_path)
+            except:
+                pass
+            tkMessageBox.showerror(
+                "שגיאה" if is_heb_locale else "Error",
+                f"שגיאה בהורדת הקובץ:\n{e}" if is_heb_locale else f"Error downloading file:\n{e}"
+            )
+            progress_win.destroy()
+
+    threading.Thread(target=download, daemon=True).start()
+
+            
 # פונקצייה מאוד חשובה ויסודית שהכל מתחיל ממנה
 # פונקצייה לקבלת ועיבוד קלט מהמשתמש של תאריך שעה מקום ואיזור הזמן
 # פונקצייה זו קובעת גם את האפאמאריס שיהיה בשימוש כתלות במספר השנה הלועזית
@@ -3172,9 +3249,9 @@ def time_location_timezone():
         # מגדרים את השעון העליון לעכשיו, מוציאים הודעת שגיאה וקוראים שוב לפונקצייה זו על הזמן החדש
         #set_date_time(skyfield_to_cu_time(ts.now(), location_timezone))
         set_date_time(datetime.now().astimezone(location_timezone))
-        msg="התוכנה חזרה לתאריך הנוכחי\nמפני שהתאריך שהזנת אינו בטווח שבין 1.1.1551 לבין 31.12.2649\nלשם תמיכה בתאריכים שבין 3.1.1 לבין 31.12.2999 צריך קובץ נוסף\nהוא שֵׁם הקובץ וניתן להורידו מאתר התוכנה בכתובת de441s.bsp\nhttps://sites.google.com/view/cochavim-uzmanim/\nבחלון אפשרויות נוספות ללחוץ על: פתיחת תיקיית כוכבים וזמנים לשים את הקובץ (בשֵׁם זה!) בתיקייה, ולהפעיל מחדש את התוכנה"
-        en_msg="The software has returned to the current date\nBecause the date you entered is not in the range between 1.1.1551 and 31.12.2649\nIn order to support dates between 3.1.1 and 31.12.2999 we need an additional file\nThis is the name of the file and it can be downloaded from the software website at the address de441s.bsp\nhttps ://sites.google.com/view/cochavim-uzmanim/\nIn the additional options window, click on: Open the Stars and Times folder, put the file (with this name!) in the folder, and restart the software"
-        tkMessageBox.showinfo("שגיאה: חסר קובץ מתאים לחישוב התאריך המבוקש" if is_heb_locale else "Error: A suitable file is missing to calculate the requested date",msg if is_heb_locale else en_msg)
+        msg="התוכנה חזרה לתאריך הנוכחי\nמפני שהתאריך שהזנת אינו בטווח שבין 1.1.1551 לבין 31.12.2649\nלשם תמיכה בתאריכים שבין 3.1.1 לבין 31.12.2999 צריך קובץ נוסף\nשם הקןבץ הוא de441s.bsp וניתן להורידו בחלון אפשרויות נוספות"
+        en_msg="The software has returned to the current date\nBecause the date you entered is not in the range between 1.1.1551 and 31.12.2649\nIn order to support dates between 3.1.1 and 31.12.2999 we need an additional file\nthe name of the file is de441s.bsp and it can be downloaded from the the additional options window"
+        tkMessageBox.showinfo("שגיאה: חסר קובץ מתאים לחישוב התאריך המבוקש" if is_heb_locale else "Error: A suitable file is missing to calculate the requested date",msg if is_heb_locale else en_msg)          
         return time_location_timezone()
     
     # אפשרות רביעית: במקרה שמתוך ממיר התאריכים מגיע תאריך שאינו מכוסה אפילו לא על ידי אפאמאריס 441
@@ -3954,7 +4031,7 @@ def print_halachic_times():
         stations_url = 'http://celestrak.org/NORAD/elements/stations.txt'
         
         # הנתיב בתיקיית התוכנה שבו צריך להיות קובץ הלווינים
-        stations_path = cu_dir_path+'\stations.txt'
+        stations_path = rf"{cu_dir_path}\stations.txt"
         
         #############
         # זו הדרך המקורית של סקייפילד להוריד קובץ אבל לא ברור שיכול לשמור במיקום ספציפי
@@ -8173,14 +8250,14 @@ def date_converter():
 if __name__ == '__main__':
             
     # קבלת הגדרות ברירות מחדל עבור התוכנה באמצעות פונקצייה
-    eph, eph_440, eph_441s, state1, input_years_range, locations_path, stars_path, cu_dir_path,is_installed = get_defaults()
+    eph, eph_440, eph_441s, state1, input_years_range, locations_path, locations_edited_path, stars_path, cu_dir_path,is_installed = get_defaults()
     
     # ניסיון קבלת כל המיקומים ושמותיהם באמצעות פונקצייה מתוך קובץ המיקומים הערוך ואם יש שגיאה בקובץ הערוך אז לקבל מיקומים מתוך קובץ המיקומים המקורי
     # הערה: במקרה שיש שגיאה בקובץ המיקומים הערוך המשתמש יצטרך לאפס אותו כדי להתחיל להשתמש בו או אפילו כדי לבחור מיקום ברירת מחדל
     # השגיאות שיכולות להיות בקובץ המיקומים הערוך: 1. הוא ריק. 2. יש בו ערכים שגויים 3. הוא כתוב בקידוד אחר מאשר 1255
     try:
         # קבלת כל המיקומים ושמותיהם באמצעות פונקצייה
-        locations = get_locations(locations_path,cu_dir_path)
+        locations = get_locations(locations_path,locations_edited_path,cu_dir_path)
         
         # אם אין מיקומים ברשימת המיקומים זה בגלל שיש בעיה בקובץ המיקומים הערוך ואז יש להעלות שגיאה מותאמת אישית
         if len(locations) == 0:
@@ -8190,7 +8267,7 @@ if __name__ == '__main__':
     # בכוונה לא פירטתי איזו שגיאה, כי כל שגיאה בקבלת המיקומים מהקובץ הערוך צריכה לגרום לקבלת המיקומים מהקובץ המקורי
     except:
         locations_path = resource_path('cu_locations.csv')
-        locations = get_locations(locations_path,cu_dir_path)
+        locations = get_locations(locations_path,locations_edited_path,cu_dir_path)
         # שמירת המידע שנעשה שימוש בקובץ המיקומים המקורי ולא בקובץ הערוך
         which_locations_file = "מקורי"
         
@@ -8294,7 +8371,7 @@ if __name__ == '__main__':
     # בכל מקרה אחר מדובר בווינדוס ואז יש לפעול כדלהלן
     else:
         # הגדרת הכתובת עבור ברירת מחדל של השפה הראשית לתוכנה
-        language_path = cu_dir_path+'\cu_language.txt'
+        language_path = rf"{cu_dir_path}\cu_language.txt"
         
         # אם יש קובץ להגדרת שפת ברירת המחדל של התוכנה
         if os.path.exists(language_path):
@@ -8410,6 +8487,8 @@ if __name__ == '__main__':
     mb.menu.add_command ( label="פתיחת תיקיית כוכבים וזמנים" if is_heb_locale else "Opening the cochavim uzmanim folder", command=start_cu_dir_path)
     mb.menu.add_command ( label="בדיקה האם גרסת התוכנה עדכנית" if is_heb_locale else "Checking software version update", command=is_cu_software_update)
     mb.menu.add_command ( label="פתיחת אתר האינטרנט של תוכנת כוכבים וזמנים" if is_heb_locale else "Opening cochavim uzmanim website", command=open_cu_website)
+    mb.menu.add_command ( label="הורדת קבצים נדרשים" if is_heb_locale else "Downloading required files", command=downloading_required_files)
+    
     # אם זו גרסת תוכנה שאינה מותקנת הוספת כפתור התקנה
     if not is_installed:
         mb.menu.add_command ( label="התקנה קבועה של תוכנת כוכבים וזמנים" if is_heb_locale else "Installation of cochavim uzmanim", command=install_cu)
@@ -8851,7 +8930,7 @@ if __name__ == '__main__':
     # כרגע ביטלתי את עניין הצורך ברישיון, אז לכן סטארט מופעל בכל מקרה
     
     # הגדרת הכתובת עבור קובץ הרישיון העדכני ביותר
-    license_path = cu_dir_path+'\cu_license.txt'
+    license_path = rf"{cu_dir_path}\cu_license.txt"
     
     # אם אין קובץ רישיון בתיקיית התוכנה באפפ-דאטה, אז יש ליצור קובץ כזה שכתוב בו שלא לגזול ושלא בוצע ניסיון
     if not os.path.exists(license_path):
@@ -8892,7 +8971,7 @@ if __name__ == '__main__':
         tkMessageBox.showinfo( "רישיון תוכנת כוכבים וזמנים", "התוכנה נפתחה לשימוש פעם אחת")
     
     # פתיחת קובץ הרישיון וקריאה של מה שכתוב בו
-    with open(f'{cu_dir_path}\cu_license.txt', 'r', encoding=cu_encod) as f:
+    with open(f'rf"{cu_dir_path}\cu_license.txt", 'r', encoding=cu_encod) as f:
         if f.mode=='r':
             line1 = f.readline()
             line2 = f.readline()
