@@ -1720,7 +1720,7 @@ def is_cu_software_update(manual=True):
     global cu_version_date
 
     # קישור לקובץ שבו מעודכן תאריך הגרסה האחרונה הקיימת
-    url = "https://raw.githubusercontent.com/sgbmzm/cochavim-uzmanim/main/cu_version.txt"
+    url = "https://github.com/sgbmzm/cochavim-uzmanim/releases/download/cochavim_uzmanim_plus/cu_version.txt"
 
     # ניסיון כי אולי אין חיבור לאינטרנט. אם אין חיבור מוציאים הודעה ומפסיקים את הפעולה
     try:
