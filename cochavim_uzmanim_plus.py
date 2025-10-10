@@ -27,7 +27,7 @@
 # In[4]:
 
 # רשימת הספריות שצריך להתקין במיוחד לצורך כוכבים וזמנים
-# pip install screeninfo skyfield pytz pyluach jdcal clipboard tzfpy gematriapy  ########### timezonefinder
+# pip install screeninfo skyfield pytz pyluach jdcal clipboard tzfpy gematriapy pynput platformdirs  ########### timezonefinder
 
 
 ####################################################################################################################
@@ -347,7 +347,10 @@ if is_windows:
 if getattr(sys, "frozen", False):
     import pyi_splash
     
-    
+# לצורך לחיצה מדומה על המקלדת כדי שהמסך לא ייכבה אוטומטית
+from pynput.keyboard import Controller as keyboard_Controller 
+from pynput.keyboard import Key as keyboard_Key
+        
 # חבילות סקייפילד
 import skyfield
 from skyfield.api import N, S, E, W, wgs84, load, load_file, Angle, Star, EarthSatellite
@@ -402,8 +405,6 @@ from tkinter import *
 import tkinter.font as tkfont
 import tkinter.font
 from tkinter.filedialog import asksaveasfilename
-
-
 
 # העתקה לקליפ-בוארד
 import clipboard
@@ -503,7 +504,7 @@ cu_screenheight = 768
 cu_scaling = 1.32 # כנראה המקורי היה 1.3 אבל למעשה בחרתי 1.32 כי המקורי עשה בעיות וזה כנראה פועל היטב במחשבים גדולים
 
 # תאריך גרסת התוכנה הראשית
-cu_version_date = dt.date(2025,10,9)
+cu_version_date = dt.date(2025,10,10)
 
 # פונקצייה שמחזירה שם יחד עם מיקום של קובץ בתיקיית תוכנת כוכבים וזמנים
 '''
@@ -2404,13 +2405,16 @@ def set_menubuttons_times():
 ############################################################################################
 
 
-hw_version = "23/8/2025_CU"
+hw_version = "10/10/2025_CU"
 
 # משתנה לשליטה על איזה נתונים יוצגו בהסברים במסך של שעון ההלכה בכל שנייה
 current_screen_halach_clock = 0.0  #
 
 # משתנה לשליטה אלו נתונים יוצגו בשורת הזמנים 
 current_screen_zmanim = 0
+
+# מונה לדעת מתי ללחוץ לחיצה ווירטואלית על שיפט כדי למנוע כיבוי מסך
+counter_shift = 0.0
 
 def reverse(text):
     return text if is_windows else text[::-1] 
@@ -2494,6 +2498,9 @@ def halacha_watch():
     root_hw.attributes('-fullscreen', True)
     root_hw.configure(bg='black')
     #root_hw.bind("<Escape>", lambda e: root_hw.destroy())  # יציאה ב-ES
+    
+    # עושה שלא יראו את העכבר על המסך של שעון ההלכה
+    root_hw.config(cursor="none")
      
     # פונקצייה מה לעשות בלחיצה על אסקייפ
     def for_Escape():
@@ -2847,6 +2854,10 @@ def halacha_watch():
                 lines.append(f'{label}: {time_val}')
             else:
                 lines.append(f'{time_val} :{label}')
+        
+        # הופכים את סדר האיברים עבור לינוקס כדי שיהיה מימין לשמאל: לדוגמא מגא מימין וגרא משמאל
+        if not is_windows:
+            lines = lines[::-1]
 
         SSS = '   |   '.join(lines)
         canvas.itemconfig(zmanim_id, text=SSS)
@@ -2867,6 +2878,20 @@ def halacha_watch():
         
         
         gc.collect() # ניקוי הזיכרון חשוב לפעמים כדי למנוע קריסות מזיכרון עמוס מידי
+        
+        
+        ####################################################################
+        # כשהמונה מגיע ל- 45 מדמים לחיצה על מקש שיפט במקלדת כדי למנוע כיבוי אוטומטי  
+        global counter_shift
+        if counter_shift >= 45:
+            #print("counter_shift_press")
+            keyboard = keyboard_Controller()
+            keyboard.press(keyboard_Key.shift)
+            keyboard.release(keyboard_Key.shift)
+            counter_shift = 0.0 # איפוס המונה
+        
+        counter_shift += 1 # בכל שנייה המונה מתקדם באחד
+        ####################################################################
            
 
         # חזרה על העדכון כל שנייה מחדש
@@ -8327,10 +8352,11 @@ if __name__ == '__main__':
         # הגדרה שה- די פי איי יתאים גם כשרזולוציית המסך מוגדלת (במקום טרו, אפשר גם להגדיר 1 או 2) זה גורם שהמחשב יתעלם משינוי קנה מידה של אפליקציות
         ctypes.windll.shcore.SetProcessDpiAwareness(2)
         ######################################################################################
+        # בוטל כרגע ומופעל באמצעות לחיצה מדומה על המקלדת עבור מסך שעון ההלכה בלבד כדי שלא ייכבה
         # מונע מצב שינה וכיבוי מסך
-        ES_CONTINUOUS = 0x80000000
-        ES_DISPLAY_REQUIRED = 0x00000002
-        ctypes.windll.kernel32.SetThreadExecutionState(ES_CONTINUOUS | ES_DISPLAY_REQUIRED)
+        #ES_CONTINUOUS = 0x80000000
+        #ES_DISPLAY_REQUIRED = 0x00000002
+        #ctypes.windll.kernel32.SetThreadExecutionState(ES_CONTINUOUS | ES_DISPLAY_REQUIRED)
         ######################################################################################
     # שינוי קנה המידה של התצוגה במקרה שהרזולוציה של המסך גדולה יותר
     ws.tk.call('tk', 'scaling', cu_scaling*magnification_factor) # סקאלינג לא עובד בלינוקס
