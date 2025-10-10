@@ -361,6 +361,7 @@ from numpy import arccos
 import math
 
 # תאריכים ואיזורי זמן
+import time as pytime # לעבודה עם זמנים בשניות מאז Epoch. בכוונה נתתי שם pytime כי יש בקוד שלי כמה משתנים בשם time
 import datetime as dt
 from datetime import datetime, timedelta, date
 from pytz import timezone
@@ -1045,13 +1046,6 @@ def eclipse_calculations(time,location,location_timezone,body="sun",PLUS_MINUS="
         # מיקום חלון ההמתנה מעל החלון הראשי
         Waiting_eclipse.wm_transient(ws)
         Waiting_eclipse.title('נא להמתין לחישוב הנתונים' if is_heb_locale else "Please wait for data calculations")
-        
-        if is_windows:
-            try:
-                icon_path = resource_path("cu_icon.ico")
-                Waiting_eclipse.iconbitmap(icon_path)
-            except:
-                pass
         
         msg = "המתינו לטעינת תאריך ושעת הליקוי בשעון העליון\n\nשימו לב: תכונה זו איננה מושלמת\nוייתכן שעלולים להתפספס ליקויים מסויימים"
         en_msg = "Wait for the time of eclipse to be loaded in the upper clock\n\nPlease note: this feature is not perfect\nand it is possible that certain eclipses may be missed"
@@ -1917,15 +1911,6 @@ def add_new_location():
         # חלון הוספת המיקום    
         loc = Toplevel(ws)
         loc.geometry(f"{round(500*magnification_factor)}x{round(200*magnification_factor)}+{round(70*magnification_factor)}+{round(200*magnification_factor)}")
-        
-        if is_windows:
-            try:
-                # קבלת מיקום מוחלט עבור קובץ האייקון
-                icon_path = resource_path("cu_icon.ico")
-                loc.iconbitmap(icon_path)
-            except:
-                pass
-            
         loc.title("כוכבים וזמנים: הוספת מיקום חדש" if is_heb_locale else "Adding a new location")
         # מיקום חלון הוספת מיקום מעל החלון הראשי
         loc.wm_transient(ws)
@@ -2422,11 +2407,13 @@ def set_menubuttons_times():
 hw_version = "23/8/2025_CU"
 
 # משתנה לשליטה על איזה נתונים יוצגו בהסברים במסך של שעון ההלכה בכל שנייה
-current_screen_halach_clock = 0.0  # 
+current_screen_halach_clock = 0.0  #
 
+# משתנה לשליטה אלו נתונים יוצגו בשורת הזמנים 
+current_screen_zmanim = 0
 
 def reverse(text):
-    return text if is_windows else text[::-1]
+    return text if is_windows else text[::-1] 
 
 #  ההסברים מורכבים משני חלקים כל אחד: הסבר וערך. ההסבר עובר בסוף רוורס ולכן אם יש בו מספרים חייבים לעשות להם רוורס כאן כדי שהרוורס הסופי יישר אותם 
 esberim = [
@@ -2597,6 +2584,11 @@ def halacha_watch():
     utc_offset_id = canvas.create_text(270 * scale, 157 * scale, text="", fill="white", font=scaled_font("miriam", 18))
     time_id = canvas.create_text(180 * scale, 157 * scale, text="", fill=hw_green, font=scaled_font("miriam", 20, "bold"))
     greg_date_id = canvas.create_text(65 * scale, 157 * scale, text="", fill="white", font=scaled_font("miriam", 18))
+    canvas.create_line(0, 166 * scale, screen_width, 166 * scale, fill="yellow")
+    
+    # איזור שקיים רק במחשב ולא בשעון ההלכה הפיזי שמציג זמני הלכה קשיחים בשעון רגיל
+    zmanim_id = canvas.create_text(160 * scale, 174 * scale, text="", fill="magenta", font=scaled_font("miriam", 10))
+
     
     #פונקציה לעדכון המסך כל שנייה
     def update_canvas():
@@ -2742,6 +2734,28 @@ def halacha_watch():
         
         # איזור תאריך עברי כולל צבע מתאים לימי חול ולשבתות וחגים
         # צבע הטקסט והרקע של התאריך העברי: ביום חול לבן על שחור ובשבת וחג שחור על צהוב, ובחגים דרבנן כולל תעניות שחור על ציאן
+        
+        #################################################################################
+        # איזור לטיפול בכך שהרקע הצבעוני שתחת התאריך העברי יהיה רק תחתיו ולא בכל השורה
+        
+        # קבלת טקסט עם הנתונים על הפונט שהוגדר לאיזור התאריך העברי והפרדתו למערך של שלושה נתונים
+        heb_date_font_tuple = canvas.itemcget(heb_date_id, "font").split()
+        # הפרדת שלושת הנתונים
+        font_family, font_size, font_weight = heb_date_font_tuple
+        # בניית אובייקט פונט של טקינטר מתוך מערך שלושת הנתונים
+        heb_date_font = tkfont.Font(family=font_family, size=int(font_size), weight=font_weight)   
+        # מדידת אורך הטקסט של התאריך העברי בהתאם לפונט שבו השתמשנו לכתוב אותו
+        text_width = heb_date_font.measure(heb_date_string)
+        y1 = 21 * scale # גובה התחלת הרקע מראש המסך
+        y2 = 38 * scale # גובה סיום הרקע מראש המסך
+        center_x = 160 * scale # מרכז המסך מימין לשמאל
+        padding = 30 # שוליים נוספים מעבר לטסקט אם רוצים שהרקע יחרוג קצת. לא הכרחי אפשר לעשות 0
+        x1 = center_x - (text_width / 2) - padding # מרחק תחילת הטקסט ממרכז המסך
+        x2 = center_x + (text_width / 2) + padding # מרחק סוף הטקסט ממרכז המסך
+        canvas.coords(heb_date_rect_id, x1, y1, x2, y2) # עדכון הרקע כך שיהיה רק בגבולות של הטקסט
+
+        ####################################################################
+        
         HEB_DATE_FG, HEB_DATE_BG  = ("black", "yellow") if is_shabat or is_yom_tov else ("black", "cyan") if lite_holiday else ("white", "black")
         canvas.itemconfig(heb_date_rect_id, fill=HEB_DATE_BG)
         canvas.itemconfig(heb_date_id, text=heb_date_string, fill=HEB_DATE_FG)
@@ -2769,7 +2783,81 @@ def halacha_watch():
         canvas.itemconfig(hesberim_id, text=CCC if is_heb_locale else "information") # אפשר להשמיט את fill="violet" ואז הטקסט יהיה לבן כמו שהוגדר לעיל
         current_screen_halach_clock = (current_screen_halach_clock + 0.25) % len(esberim)  # זה גורם מחזור של שניות לאיזה נתונים יוצגו במסך
         
+        
+        
+        ############################################################################
+        ############################################################################
+        ############################################################################
+        # איזור הדפסת זמנים בשעון רגיל. כל האיזור עדיין בבניה
+        sunrise, sunset = GRA_Today_SR.timestamp(), GRA_Today_SS.timestamp()
+        mga_sunrise, mga_sunset = MGA_Today_SR.timestamp(), MGA_Today_SS.timestamp()
+        #חישוב מספר השקיעה מהזריחה לשקיעה
+        seconds_day_gra = (sunset - sunrise) / 12 if sunrise and sunset else None
+        seconds_day_mga = (mga_sunset - mga_sunrise) / 12 if mga_sunrise and mga_sunset else None
+        
+        def hhh(start_time, seconsd_per_hour, hour):
+            if seconsd_per_hour:
+                AAA = start_time + (seconsd_per_hour * hour)
+                 # עיגול לדקה הקרובה
+                total_seconds = int(AAA + 30) // 60 * 60 
+                time_value = pytime.localtime(total_seconds)
+                return pytime.strftime("%H:%M", time_value)
+                # אם רוצים בלי עיגול אלא כולל שניות
+                #time_value = time.gmtime(AAA)
+                #return time.strftime("%H:%M:%S", time_value) 
+            else:
+                return reverse("שגיאה")
+            
+        
 
+        zmanim = [
+            
+            [f"עלות השחר {reverse('(16)')}", hhh(mga_sunrise, seconds_day_mga, hour=0)],
+            ["זריחה", hhh(sunrise, seconds_day_mga, hour=0)],
+            ["סוף שמע מגא", hhh(mga_sunrise, seconds_day_mga, hour=3)],
+            ["סוף שמע גרא", hhh(sunrise, seconds_day_gra, hour=3)],
+            ["סוף תפילה מגא",  hhh(mga_sunrise, seconds_day_mga, hour=4)],
+            ["סוף תפילה גרא", hhh(sunrise, seconds_day_gra, hour=4)],
+            ["חצות", hhh(sunrise, seconds_day_gra, hour=6)],
+            ["מנחה גדולה", hhh(sunrise, seconds_day_gra, hour=6.5)],
+            ["מנחה קטנה", hhh(sunrise, seconds_day_gra, hour=9.5)],
+            ["פלג המנחה", hhh(sunrise, seconds_day_gra, hour=10.75)],
+            ["שקיעה", hhh(sunrise, seconds_day_gra, hour=12)],
+            [f"צאת הכוכבים דרבינו תם {reverse('(16)')}", hhh(mga_sunrise, seconds_day_mga, hour=12)],
+        ]
+
+        global current_screen_zmanim
+        # אם רוצים זמן אחד בשורה
+        #text = reverse(zmanim[int(current_screen_zmanim)][0])
+        #time_i = zmanim[int(current_screen_zmanim)][1]
+        #SSS = f' {text}: {time_i}'
+        #canvas.itemconfig(sgb_id, text=SSS)
+        #current_screen_zmanim = (current_screen_zmanim + 0.25) % len(zmanim)
+        
+        # אם רוצים שני זמנים בשורה
+        lines = []
+        base_index = int(current_screen_zmanim) * 2
+
+        for i in range(2):
+            index = (base_index + i) % len(zmanim)
+            label = reverse(zmanim[index][0])
+            time_val = zmanim[index][1]
+            # בלינוקס צריך סדר הפוך מווינדוס בגלל בעיית הצגת עברית
+            if is_windows:
+                lines.append(f'{label}: {time_val}')
+            else:
+                lines.append(f'{time_val} :{label}')
+
+        SSS = '   |   '.join(lines)
+        canvas.itemconfig(zmanim_id, text=SSS)
+        current_screen_zmanim = (current_screen_zmanim + 0.15) % ((len(zmanim) + 1) // 2)  # חלוקה לשלשות, מעוגלת כלפי מעלה
+
+        
+        #############################################################################
+        #############################################################################
+        #############################################################################
+            
+        
         # עדכון תאריך לועזי שעה רגילה ואיזור זמן
         time_now = time.strftime("%H:%M:%S")
         greg_date_now = time.strftime("%d/%m/%Y")
@@ -2801,16 +2889,6 @@ def halacha_watch():
 # פונקצייה לחלון ההסברים
 def esber():
     esber = Toplevel(ws)
-    
-    if is_windows:
-        try:
-            # קבלת מיקום מוחלט עבור קובץ האייקון
-            icon_path = resource_path("cu_icon.ico")
-            # הגדרת האייקון על קובץ האייקון במיקומו המוחלט
-            esber.iconbitmap(icon_path)
-        except:
-            pass
-        
     esber.minsize(80,80)
     esber.geometry(f"{round(800*magnification_factor)}x{round(685*magnification_factor)}+{round(100*magnification_factor)}+{round(1*magnification_factor)}")
     # הגדרת צבע לכל החלון
@@ -2896,16 +2974,6 @@ def time_skip(time):
     window.title("זמן לדילוג")
     # מיקום החלון מעל החלון הראשי
     window.wm_transient(ws)
-    
-    if is_windows:
-        try:
-            # קבלת מיקום מוחלט עבור קובץ האייקון
-            icon_path = resource_path("cu_icon.ico")
-            # הגדרת האייקון על קובץ האייקון במיקומו המוחלט
-            window.iconbitmap(icon_path)
-        except:
-            pass
-        
     window.minsize(180,310)
     window.geometry(f"{round(180*magnification_factor)}x{round(310*magnification_factor)}+{round(100*magnification_factor)}+{round(120*magnification_factor)}")
     # הגדרת צבע לכל החלון
@@ -5229,14 +5297,6 @@ def export_calendar_halacha_times():
         # מיקום חלון ההמתנה מעל החלון הראשי
         Waiting_halacha_times.wm_transient(ws)
         Waiting_halacha_times.title('נא להמתין לחישוב הנתונים' if is_heb_locale else "Please wait for data calculations")
-        
-        if is_windows:
-            try:
-                icon_path = resource_path("cu_icon.ico")
-                Waiting_halacha_times.iconbitmap(icon_path)
-            except:
-                pass
-            
         msg = f"\nנא המתינו בסבלנות לסיום חישוב הזמנים\nבסיום, תתבקשו לבחור היכן לשמור את הקובץ\n\nאין להשתמש בתוכנה במהלך חישוב הזמנים\nניתן לבטל את חישוב הזמנים על ידי סגירת חלון זה"
         en_msg = f"\nPlease wait patiently for the times calculation to finish\nAt the end, you will be asked to choose where to save the file\n\nDo not use the software during the time calculation\nYou can cancel the time calculation by closing this window"
         Label(Waiting_halacha_times, text=msg if is_heb_locale else en_msg, font="david 16" if is_heb_locale else "david 14",justify="center").pack()
@@ -6043,14 +6103,6 @@ def export_calendar_moons(first_last = "first", events_to_print = "הכל"):
             # מיקום חלון ההמתנה מעל החלון הראשי
             Waiting_moon_times.wm_transient(ws)
             Waiting_moon_times.title('נא להמתין לחישוב הנתונים' if is_heb_locale else "Please wait for data calculations")
-            
-            if is_windows:
-                try:
-                    icon_path = resource_path("cu_icon.ico")
-                    Waiting_moon_times.iconbitmap(icon_path)
-                except:
-                    pass
-                
             msg = f"\nנא המתינו בסבלנות לסיום חישוב ראִיות הירח\nבסיום, תתבקשו לבחור היכן לשמור את הקובץ\n\nאין להשתמש בתוכנה במהלך חישוב הראִיות\nניתן לבטל את חישוב הזמנים על ידי סגירת חלון זה"
             Label(Waiting_moon_times, text=msg, font="david 16",justify="center").pack()
             Label(Waiting_moon_times, text="\nהחודש המחושב כעת", font="david 16",justify="center").pack()
@@ -6620,17 +6672,7 @@ def yom_huledet():
         wnd=Toplevel(ws) # Tk()
         wnd.minsize(660,617)
         wnd.geometry(f"{round(660*magnification_factor)}x{round(685*magnification_factor)}+{round(130*magnification_factor)}+{round(1*magnification_factor)}")
-        
-        if is_windows:
-            try:
-                # הגדרת האייקון לתוכנה במקרה שסוגרים בקובץ אחד כי צריך מיקום יחסי משתמש בפונקצייה שהובאה לעיל
-                icon_path = resource_path("birthday_icon.ico")
-                # הגדרת האייקון לתוכנה
-                wnd.iconbitmap(icon_path)
-            except:
-                pass
-            
-        wnd.title(f'תוכנת יום הולדת עברי ובר/בת מצווה - מאת הרב ד"ר שמחה גרשון בורר | גרסה:  {dt.date(2023,7,28):%d/%m/%Y}')
+        wnd.title(f'חישובי יום הולדת עברי ובר/בת מצווה - מאת הרב ד"ר שמחה גרשון בורר | גרסה:  {dt.date(2023,7,28):%d/%m/%Y}')
         # הגדרת צבע לכל החלון
         wnd.configure(bg=cu_color)
         
@@ -6654,9 +6696,8 @@ def yom_huledet():
 
 
         # כותרות לתוכנה
-        Label(wnd, text="ברוכים הבאים לתוכנת יום הולדת עברי ובר/בת מצווה", font= "david 18 bold", wraplength=1000).pack()
-        Label(wnd, text="\nתוכנה זו בודקת באילו ימים בשבוע יכול לחול יום ההולדת העברי וכן נותנת פרטים אודות בר/בת המצווה", font= font_, wraplength=1000).pack()
-        Label(wnd, text="שימו לב: תוכנה זו תוכננה עבור יום הולדת, אך היא יכולה לשמש גם עבור כל תאריך עברי אחר", font="david 12 bold" , wraplength=1000).pack()
+        Label(wnd, text="מידע באילו ימים בשבוע יכול לחול יום ההולדת העברי וכן פרטים אודות בר/בת המצווה", font= font_, wraplength=1000).pack()
+        Label(wnd, text="שימו לב: תוכנן עבור יום הולדת, אך יכול לשמש גם עבור כל תאריך עברי אחר", font="david 12 bold" , wraplength=1000).pack()
 
 
         # תווית כותרת שאומרת למשתמש מה לעשות, והצבה שלה לתוך החלון
@@ -7410,17 +7451,7 @@ def heb_year_information():
         hyi=Toplevel(ws) # Tk()
         hyi.minsize(675,600)
         hyi.geometry(f"{round(675*magnification_factor)}x{round(685*magnification_factor)}+{round(110*magnification_factor)}+{round(1*magnification_factor)}")
-        
-        if is_windows:
-            try:
-                # הגדרת האייקון לתוכנה במקרה שסוגרים בקובץ אחד כי צריך מיקום יחסי משתמש בפונקצייה שהובאה לעיל
-                icon_path = resource_path("hyi_icon.ico")
-                # הגדרת האייקון לתוכנה
-                hyi.iconbitmap(icon_path)
-            except:
-                pass
-            
-        hyi.title(f'תוכנת מידע על שנה עברית - מאת הרב ד"ר שמחה גרשון בורר | גרסה: {dt.date(2024,8,26):%d/%m/%Y}')
+        hyi.title(f'מידע על שנה עברית - מאת הרב ד"ר שמחה גרשון בורר | גרסה: {dt.date(2024,8,26):%d/%m/%Y}')
         #הגדרת צבע לכל החלון
         hyi.configure(bg=cu_color)
         
@@ -7438,10 +7469,6 @@ def heb_year_information():
         # הגדרת משתנה ששומר הגדרות כלליות לפונט שיהיה בשימוש
         font_buttons = tkinter.font.Font(hyi, family='narkisim', size=12, weight='bold')
         font_ = tkinter.font.Font(hyi, family='david', size=12)
-
-
-        # כותרות לתוכנה
-        Label(hyi, text="ברוכים הבאים לתוכנת מידע על שנה עברית\n", font= "david 18 bold", wraplength=1000).pack()
 
         #---------------------------------------------
 
@@ -7465,7 +7492,7 @@ def heb_year_information():
         Entry_heb_year = StringVar(hyi)
         heb_year_cb = ttk.Combobox(input_heb, textvariable=Entry_heb_year, width=16, state=state1,values=[*heb_years],font="narkisim 18",justify='center',)
         heb_year_cb.grid(column=2, row=2)
-        Label(input_heb, text="בחר שנה עברית").grid(column=2, row=3)
+        Label(input_heb, text="בחרו שנה עברית").grid(column=2, row=3)
         
         Label(input_heb, text="   ").grid(column=1, row=2)
         
@@ -7959,15 +7986,6 @@ def date_converter():
         converter.minsize(450,630)
         converter.geometry(f"{round(450*magnification_factor)}x{round(630*magnification_factor)}+{round(320*magnification_factor)}+{round(1*magnification_factor)}")
         converter.title(f'ממיר תאריכים עברי-לועזי-עברי | גרסה:  {dt.date(2024,11,4):%d/%m/%Y}')
-        
-        if is_windows:
-            try:
-                # הגדרת האייקון לתוכנה במקרה שסוגרים בקובץ אחד כי צריך מיקום יחסי משתמש בפונקצייה שהובאה לעיל
-                icon_path = resource_path("converter_icon.ico")
-                converter.iconbitmap(icon_path)
-            except:
-                pass
-            
         # אם רוצים לעשות שהחלון הזה יהיה מעל כל החלונות שבמחשב. זה חשוב בעיקר כאשר רזולוציית המסך מוגדלת
         #converter.attributes('-topmost',True)
         # הגדרת צבע לכל החלון
@@ -8323,17 +8341,11 @@ if __name__ == '__main__':
     ws.minsize(200,200)
     # אם רוצים למלאות את המסך כל מסך לפי הרזולוצייה שלו יש לפעול לפי השורה הבאה
     #ws.geometry(f'{ws.winfo_screenwidth()}x{ws.winfo_screenheight()}+1+1')
+    
+    # הגדרת האייקון לתוכנה וזה משפיע גם על כל החלונות האחרים בתוכנה
+    cu_icon = Tkinter.PhotoImage(file='cu_icon.png')
+    ws.iconphoto(True, cu_icon)
       
-    # הגדרת האייקון לתוכנה
-    if is_windows:
-        try:
-            # קבלת מיקום מוחלט עבור קובץ האייקון
-            icon_path = resource_path("cu_icon.ico")
-            # הגדרת האייקון על קובץ האייקון במיקומו המוחלט
-            ws.iconbitmap(icon_path)
-        except:
-            pass
-        
     # אם רוצים לעשות שהחלון הזה יהיה מעל כל החלונות שבמחשב. זה חשוב בעיקר כאשר רזולוציית המסך מוגדלת
     #ws.attributes('-topmost',True)
     #  מוגדר להלן לאחר הגדרת השפה הגדרת הכותרת לתוכנה
@@ -9003,8 +9015,6 @@ if __name__ == '__main__':
         # מיקום חלון הרישיון מעל החלון הראשי
         lin.wm_transient(ws)
         # קבלת מיקום מוחלט עבור קובץ האייקון
-        icon_path = resource_path("cu_icon.ico")
-        lin.iconbitmap(icon_path)
         lin.title("כוכבים וזמנים: רישיון")
         Label(lin, text="לא תעשוק את רעך - ולא תגזול (ויקרא יט,יג) \nאסור להשתמש בתוכנה שלא נרכשה כדין \nמחיר התוכנה 20 שקלים בלבד לכל מחשב \nלרכישה פנה באימייל \nsgbmzm@gmail.com \n\nאם רכשת את התוכנה כדין, הקלד את הסיסמה שקיבלת ברכישה, ולחץ על אישור").pack()
         var123 = StringVar(lin)
