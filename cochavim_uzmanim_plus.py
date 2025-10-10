@@ -8369,7 +8369,8 @@ if __name__ == '__main__':
     #ws.geometry(f'{ws.winfo_screenwidth()}x{ws.winfo_screenheight()}+1+1')
     
     # הגדרת האייקון לתוכנה וזה משפיע גם על כל החלונות האחרים בתוכנה
-    cu_icon = Tkinter.PhotoImage(file='cu_icon.png')
+    cu_icon_path = resource_path('cu_icon.png')
+    cu_icon = Tkinter.PhotoImage(file=cu_icon_path)
     ws.iconphoto(True, cu_icon)
       
     # אם רוצים לעשות שהחלון הזה יהיה מעל כל החלונות שבמחשב. זה חשוב בעיקר כאשר רזולוציית המסך מוגדלת
