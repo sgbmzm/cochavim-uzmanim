@@ -1,4 +1,4 @@
-pyinstaller --noconsole --onefile --splash=cu_splash.jpg --add-binary "vcruntime140.dll;." --add-data "cochavim_uzmanim_plus.py;." --add-data "cochavim_uzmanim_plus_dir.exe;." --add-data "cu_locations.csv;." --add-data "cu_stars.csv;." --add-data "cu_splash.jpg;." --add-data "de440.bsp;." --add-data "skyfield;skyfield" --add-data "cu_icon.ico;." --add-data "hyi_icon.ico;." --add-data "converter_icon.ico;." --add-data "birthday_icon.ico;." -i"cu_icon.ico" cochavim_uzmanim_plus.py
+pyinstaller --noconsole --onefile --splash=cu_splash.jpg --add-data "cochavim_uzmanim_plus.py;." --add-data "cochavim_uzmanim_plus_dir.exe;." --add-data "cu_locations.csv;." --add-data "cu_stars.csv;." --add-data "cu_splash.jpg;." --add-data "de440.bsp;." --add-data "skyfield;skyfield" --add-data "cu_icon.png;." -i"cu_icon.ico" cochavim_uzmanim_plus.py
 
 
 אבל בדרך כלל אני משתמש בקובץ המפרט כדלהלן
@@ -17,5 +17,4 @@ pyinstaller cochavim_uzmanim_plus.spec
 pyinstaller cochavim_uzmanim_plus_dir.spec
 
 יצירת קובץ מיפרט
-
 pyi-makespec cochavim_uzmanim_plus.py
