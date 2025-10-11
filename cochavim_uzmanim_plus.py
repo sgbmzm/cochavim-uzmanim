@@ -1893,10 +1893,10 @@ def install_cu():
 
         # העתקת תיקיית כוכבים וזמנים הזמנית שפועלת מתיקיית טמפ למקום קבוע בתוך תיקיית כוכבים וזמנים הקבועה
         # זה בכוונה חייב להיות תחת תיקייה בשם _internal אחרת התוכנה לא תעבוד
-        shutil.copytree(absolute_temp_path, rf"{destination_path}\_internal")
+        shutil.copytree(absolute_temp_path, rf"{installation_dir}\_internal")
         
         # הוצאת קובץ התוכנה עצמו מתוך תיקיית _internal לתיקייה הראשית cu_installation כי בלי זה התוכנה לא תפעל
-        shutil.copy(rf"{destination_path}\cochavim_uzmanim_plus_dir.exe", rf"{cu_dir_path}\cu_installation\cochavim_uzmanim_plus_dir.exe")
+        shutil.copy(rf"{installation_dir}\cochavim_uzmanim_plus_dir.exe", rf"{cu_dir_path}\cu_installation\cochavim_uzmanim_plus_dir.exe")
         
         # הנתיב החדש לסקריפט פייתון המקורי של התוכנה למקרה שאני רוצה למחוק אותו כדי שהמשתמש לא יראה את הקוד המלא
         #cu_script_new_path = rf"{cu_dir_path}\cu_installation\_internal\cochavim_uzmanim_plus.py"
@@ -1907,7 +1907,7 @@ def install_cu():
         if is_heb_locale:
             tkMessageBox.showinfo("התקנת תוכנת כוכבים וזמנים", f"התוכנה הותקנה בתיקייה הבאה\n{installation_dir}\nכעת ניצור קיצורי דרך בשולחן העבודה ובתפריט ההתחלה")
         else:
-            tkMessageBox.showinfo("Installing cochavim uzmanim software", f"The software has been installed in the following folder\n{destination_path}\nNow we will create shortcuts on the desktop and start menu")
+            tkMessageBox.showinfo("Installing cochavim uzmanim software", f"The software has been installed in the following folder\n{installation_dir}\nNow we will create shortcuts on the desktop and start menu")
             
         # הנתיב החדש לקובץ ההפעלה של התוכנה המותקנת
         cu_dir_exe_new_path = rf"{cu_dir_path}\cu_installation\cochavim_uzmanim_plus_dir.exe"
