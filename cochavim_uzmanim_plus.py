@@ -27,7 +27,7 @@
 # In[4]:
 
 # רשימת הספריות שצריך להתקין במיוחד לצורך כוכבים וזמנים
-# pip install screeninfo skyfield pytz pyluach jdcal clipboard tzfpy gematriapy pynput platformdirs  ########### timezonefinder
+# pip install screeninfo skyfield pytz pyluach jdcal clipboard tzfpy gematriapy pynput platformdirs
 
 
 ####################################################################################################################
@@ -334,14 +334,8 @@ import sys
 # העתקת תיקיות במחשב ממקום למקום
 import shutil
 
-# יצירת קיצורי דרך לקבצים על שולחן העבודה
-# זה עובד רק בווינדוס
-if is_windows:
-    try: ############################################### סתם עשיתי ניסיון בגלל שחסר בטוני את הספרייות האלה
-        import pythoncom
-        from win32com.client import Dispatch
-    except:##############################################
-        pass ############################################
+# למיקומי קבצים ותיקייות
+from pathlib import Path
 
 # כאשר התוכנה פועלת כתוכנה סגורה יש לייבא לצורך מסך טעינת התוכנה
 if getattr(sys, "frozen", False):
@@ -371,6 +365,7 @@ from pytz import timezone
 import pytz
 # בעתיד אולי נשתמש לאיזורי זמן ב 
 #from zoneinfo import ZoneInfo
+
 import calendar
 
 # ייבוא חבילת גמטריה לצורך מידע על שנה עברית
@@ -385,14 +380,14 @@ import jdcal
 # ספרייה לקריאת קובץ סי אס וי של מיקומים
 import csv
 
-# ספרייה למיון נתונים
-# כרגע אין בה צורך כי השתמשתי ב lambda
-#import operator
-
-# מידע על שפת הווינדוס וקידוד השפות
-# עובד רק בווינדוס
+# יבוא ספריות שקיימות רק בווינדוס
 if is_windows:
-    import locale
+    import locale # מידע על שפת הווינדוס וקידוד השפות # אמור לעבוד גם בלינוקס. לבדוק 
+    from win32com.client import Dispatch # עבודה מול מערכת הפעלה ווינדוס כגון יצירת קיצורי דרך
+    
+if is_windows: # אמור לעבוד גם בלינוקס. לבדוק 
+    # פתיחת דפדפן אינטרנט
+    import webbrowser
 
 # הודעות של טקינטר
 from tkinter import messagebox as tkMessageBox
@@ -412,17 +407,11 @@ import clipboard
 # פתיחת קישור אינטרנט קריאת דפי אינטרנט או הורדת קבצים
 from urllib.request import urlopen
 from urllib.request import urlretrieve
-
 # תקשורת עם אתרי אינטרנט חלופי ל 
 #import requests
 
-if is_windows:
-    # פתיחת דפדפן אינטרנט
-    import webbrowser
-
 # מציאת איזור זמן לפי קווי אורח ורוחב
-#######from timezonefinder import TimezoneFinder
-from tzfpy import get_tz
+from tzfpy import get_tz # הרבה יותר מהיר מ timezonefinder שפעם השתמשתי
 
 # אישורים של תעודות אבטחה לצורך נטפרי ועוד
 import certifi
@@ -1756,36 +1745,94 @@ def install_cu():
 
     # פונקצייה ליצירת קיצור דרך על שולחן העבודה ותפריט התחל-תוכניות
     # הפונקצייה מקבלת שלושה ארגומנטים: 1. נתיב מלא לקובץ שרוצים לעשות לו קיצור דרך. 2. השם שבו ייקרא קיצור הדרך. 3. המקום שבו ישימו את קיצור הדרך וברירת המחדל היא בשולחן העבודה
-    # נבנתה בעזרת צ'אט-גיפיטי
-    def create_shortcut(target_path, shortcut_name = "shortcut", where="desktop"):
+    # נבנתה בעזרת צ'אט-גיפיטי  
+    def create_shortcut(target_path, shortcut_name="shortcut", is_heb_locale=True):
         
-        # פונקציית עזר שהיא זו שיוצרת בפועל את קיצורי הדרך
-        def create_shortcut_windows(target_path, shortcut_path):           
+        # בדיקה מה מערכת ההפעלה של המשתמש
+        system = platform.system().lower()
+
+        # ---------- פונקציה פנימית ליצירת קיצור דרך ב-Windows ----------
+        def create_windows_shortcut(destination_folder):
+            shortcut_path = os.path.join(destination_folder, f"{shortcut_name}.lnk")
+            # אם הקיצור קיים, מוחק קודם
+            if os.path.exists(shortcut_path):
+                os.remove(shortcut_path)
             shell = Dispatch('WScript.Shell')
             shortcut = shell.CreateShortCut(shortcut_path)
             shortcut.TargetPath = target_path
+            shortcut.WorkingDirectory = os.path.dirname(target_path)
+            shortcut.IconLocation = target_path
             shortcut.save()
-            
-        # קיצור דרך עבור שולחן העבודה
-        if where == "desktop":
-            desktop_dir = os.path.join(os.path.join(os.environ['USERPROFILE']), 'Desktop')
-            shortcut_path = os.path.join(desktop_dir, f'{shortcut_name}.lnk')
-            create_shortcut_windows(target_path, shortcut_path)
 
-        #  קיצור דרך עבור תפריט ההתחלה
-        elif where == "Start_Menu":
+        # ---------- פונקציה פנימית ליצירת קיצור דרך ב-Linux ----------
+        def create_linux_desktop_entry(destination_folder):
+            shortcut_path = Path(destination_folder) / f"{shortcut_name}.desktop"
+            # אם הקיצור קיים, מוחק קודם
+            if shortcut_path.exists():
+                shortcut_path.unlink()
+            content = f"""[Desktop Entry]
+    Name={shortcut_name}
+    Exec={target_path}
+    Type=Application
+    Terminal=false
+    Icon={target_path}
+    """
+            with open(shortcut_path, "w") as f:
+                f.write(content)
+            os.chmod(shortcut_path, 0o755)
+
+        # טקסטים בהתאם לשפה
+        txt_desktop_question = "האם ברצונך ליצור קיצור דרך לשולחן העבודה?" if is_heb_locale else "Do you want to create a desktop shortcut?"
+        txt_start_question = "האם ברצונך ליצור גם קיצור דרך בתפריט התחל?" if is_heb_locale else "Do you also want to add a Start Menu shortcut?"
+        txt_success_desktop = "קיצור דרך בשולחן העבודה נוצר בהצלחה" if is_heb_locale else "Desktop shortcut created successfully"
+        txt_success_start = "קיצור דרך בתפריט התחל נוצר בהצלחה" if is_heb_locale else "Start Menu shortcut created successfully"
+        txt_error = "יצירת קיצור דרך נכשלה בגלל:\n" if is_heb_locale else "Creating shortcut failed because:\n"
+        txt_error_os = "מערכת ההפעלה אינה נתמכת ליצירת קיצור דרך" if is_heb_locale else "Operating system not supported for shortcut creation"
+
+        # ---------- WINDOWS ----------
+        if system == "windows":
             try:
-                # נתיב לתפריט התחל-תוכניות של כל המשתמשים
-                start_menu_dir = os.path.join(os.environ['ALLUSERSPROFILE'], r'Microsoft\Windows\Start Menu\Programs')
-                start_menu_shortcut_path = os.path.join(start_menu_dir, f'{shortcut_name}.lnk')
-                create_shortcut_windows(target_path, start_menu_shortcut_path)
-            except:
-                # קבלת נתיב לתפריט התחל-תוכניות של המשתמש הנוכחי
-                appdata_dir = os.path.join(os.environ['APPDATA'], r'Microsoft\Windows\Start Menu\Programs')
-                start_menu_shortcut_path = os.path.join(appdata_dir, f'{shortcut_name}.lnk')
-                create_shortcut_windows(target_path, start_menu_shortcut_path)
-            
+                from win32com.client import Dispatch
+            except ImportError:
+                messagebox.showerror("Error", "pywin32 is not installed")
+                return
 
+            # שולחן עבודה
+            desktop_dir = os.path.join(os.environ['USERPROFILE'], 'Desktop')
+            if messagebox.askyesno("Shortcut Creation", txt_desktop_question):
+                try:
+                    create_windows_shortcut(desktop_dir)
+                    messagebox.showinfo("Success", txt_success_desktop)
+                except Exception as e:
+                    messagebox.showerror("Error", f"{txt_error}{e}")
+
+            # תפריט התחל
+            if messagebox.askyesno("Shortcut Creation", txt_start_question):
+                try:
+                    start_menu_dir = os.path.join(os.environ.get('ALLUSERSPROFILE', ''), r'Microsoft\Windows\Start Menu\Programs')
+                    if not os.path.exists(start_menu_dir):
+                        start_menu_dir = os.path.join(os.environ['APPDATA'], r'Microsoft\Windows\Start Menu\Programs')
+                    create_windows_shortcut(start_menu_dir)
+                    messagebox.showinfo("Success", txt_success_start)
+                except Exception as e:
+                    messagebox.showerror("Error", f"{txt_error}{e}")
+
+        # ---------- LINUX ----------
+        elif system == "linux":
+            desktop_dir = Path.home() / "Desktop"
+            if messagebox.askyesno("Shortcut Creation", txt_desktop_question):
+                try:
+                    create_linux_desktop_entry(desktop_dir)
+                    messagebox.showinfo("Success", txt_success_desktop)
+                except Exception as e:
+                    messagebox.showerror("Error", f"{txt_error}{e}")
+
+        # ---------- מערכות לא נתמכות ----------
+        else:
+            messagebox.showerror("Error", txt_error_os)
+
+        
+    
     #-----------------------------------
     # מכאן והלאה הפונקצייה הראשית של התקנת התוכנה
     
@@ -1816,31 +1863,25 @@ def install_cu():
         '''
       
     try:        
-        # נתיב התיקייה כולל השם החדש לאחר העתקתה
-        destination_path = rf"{cu_dir_path}\cu_installation"
-        
-        # הנתיב החדש לקובץ ההפעלה של התוכנה המותקנת
-        cu_dir_exe_new_path = rf"{cu_dir_path}\cu_installation\cochavim_uzmanim_plus_dir.exe"
-        
-        # הנתיב החדש לסקריפט פייתון המקורי של התוכנה למקרה שאני רוצה למחוק אותו כדי שהמשתמש לא יראה את הקוד המלא
-        cu_script_new_path = rf"{cu_dir_path}\cu_installation\cochavim_uzmanim_plus.py"
+        # נתיב התיקייה שבה נשמרים קבצי ההתקנה
+        installation_dir = rf"{cu_dir_path}\cu_installation"
         
         # אם יש כבר תיקייה בשם של תיקיית היעד יש למחוק אותה כי אחרת אי אפשר להעתיק תחת שם זה
         # זה טוב לי כי אז כל התיקייה תעודכן
-        if os.path.exists(destination_path):
+        if os.path.exists(installation_dir):
             if is_heb_locale:
                 msg_box = tkinter.messagebox.askquestion('אישור התקנה מחדש','\nהתוכנה כבר מותקנת\nהאם אתה בטוח שברצונך להתקין מחדש?\nאין לכבות את התוכנה עד לקבלת אישור התקנה',icon='warning',default="no")
             else: 
                 msg_box = tkinter.messagebox.askquestion('reinstall confirmation','\nThe software is already installed\nAre you sure you want to reinstall?\nDo not turn off the software until you receive installation confirmation',icon='warning',default="no")
             # אם המשתמש ענה שהוא רוצה להתקין מחדש
             if msg_box == 'yes':
-                shutil.rmtree(destination_path)
+                shutil.rmtree(installation_dir)
             else:
                 tkMessageBox.showinfo(title_for_installation_message, f"ההתקנה בוטלה לפי בחירת המשתמש" if is_heb_locale else f"The installation was canceled by the user's choice")
                 return
         
         # אם עדיין לא מותקן כי אין תיקייה כזו
-        elif not os.path.exists(destination_path):
+        elif not os.path.exists(installation_dir):
             if is_heb_locale:
                 msg_box = tkinter.messagebox.askquestion('אישור התקנה','\nהאם אתה בטוח שברצונך להתקין את התוכנה?\nאין לכבות את התוכנה עד לקבלת אישור התקנה?',icon='warning',default="no")
             else:
@@ -1851,35 +1892,35 @@ def install_cu():
                 return
 
         # העתקת תיקיית כוכבים וזמנים הזמנית שפועלת מתיקיית טמפ למקום קבוע בתוך תיקיית כוכבים וזמנים הקבועה
-        shutil.copytree(absolute_temp_path, destination_path)
+        # זה בכוונה חייב להיות תחת תיקייה בשם _internal אחרת התוכנה לא תעבוד
+        shutil.copytree(absolute_temp_path, rf"{destination_path}\_internal")
         
+        # הוצאת קובץ התוכנה עצמו מתוך תיקיית _internal לתיקייה הראשית cu_installation כי בלי זה התוכנה לא תפעל
+        shutil.copy(rf"{destination_path}\cochavim_uzmanim_plus_dir.exe", rf"{cu_dir_path}\cu_installation\cochavim_uzmanim_plus_dir.exe")
+        
+        # הנתיב החדש לסקריפט פייתון המקורי של התוכנה למקרה שאני רוצה למחוק אותו כדי שהמשתמש לא יראה את הקוד המלא
+        #cu_script_new_path = rf"{cu_dir_path}\cu_installation\_internal\cochavim_uzmanim_plus.py"
         # מחיקת קובץ סקריפט פייתון המקורי של התוכנה כדי שלא יהיה גלוי למשתמש
-        os.remove(cu_script_new_path)
+        #os.remove(cu_script_new_path)
         
         # הודעה למשתמש
         if is_heb_locale:
-            tkMessageBox.showinfo("התקנת תוכנת כוכבים וזמנים", f"התוכנה הותקנה בתיקייה הבאה\n{destination_path}\nכעת ניצור קיצורי דרך בשולחן העבודה ובתפריט ההתחלה")
+            tkMessageBox.showinfo("התקנת תוכנת כוכבים וזמנים", f"התוכנה הותקנה בתיקייה הבאה\n{installation_dir}\nכעת ניצור קיצורי דרך בשולחן העבודה ובתפריט ההתחלה")
         else:
             tkMessageBox.showinfo("Installing cochavim uzmanim software", f"The software has been installed in the following folder\n{destination_path}\nNow we will create shortcuts on the desktop and start menu")
+            
+        # הנתיב החדש לקובץ ההפעלה של התוכנה המותקנת
+        cu_dir_exe_new_path = rf"{cu_dir_path}\cu_installation\cochavim_uzmanim_plus_dir.exe"
+        # שם קיצור הדרך
+        shortcut_name = "כוכבים וזמנים גרסה מותקנת" if is_heb_locale else "cochavim uzmanim installed version"
+        # קריאה לפונקציית יצירת קיצורי הדרך שהוגדרה לעיל
+        create_shortcut(cu_dir_exe_new_path, shortcut_name, is_heb_locale)
+      
     # במקרה של שגיאה בהתקנה
     except Exception as e:
         tkMessageBox.showinfo(title_for_installation_message, f"התקנת התוכנה נכשלה בגלל {e}" if is_heb_locale else f"Software installation failed because {e}")
         return
-    
-    
-    # יצירת קיצור דרך בשולחן העבודה ובתפריט ההתחלה באמצעות פונקצייה שהוגדרה למעלה. מקבלת את הנתיב לקובץ שעושים לו קיצור דרך ואת שם קיצור הדרך והיכן
-    try:
-        create_shortcut(cu_dir_exe_new_path, shortcut_name = "כוכבים וזמנים גרסה מותקנת" if is_heb_locale else "cochavim uzmanim installed version", where = "Start_Menu")
-        tkMessageBox.showinfo(title_for_installation_message, f"קיצור דרך בתפריט התחל-תוכניות נוצר בהצלחה" if is_heb_locale else "Start-Programs shortcut created successfully")
-    except Exception as e:
-        tkMessageBox.showinfo(title_for_installation_message, f"יצירת קיצור דרך בתפריט ההתחלה נכשלה בגלל\n{e}" if is_heb_locale else f"Creating Start Menu shortcut failed because\n{e}")
-    
-    try:    
-        create_shortcut(cu_dir_exe_new_path, shortcut_name = "כוכבים וזמנים גרסה מותקנת" if is_heb_locale else "cochavim uzmanim installed version", where = "desktop")
-        tkMessageBox.showinfo(title_for_installation_message, f"קיצור דרך בשולחן העבודה נוצר בהצלחה" if is_heb_locale else "Desktop shortcut created successfully")
-    except Exception as e:
-        tkMessageBox.showinfo(title_for_installation_message, f"יצירת קיצור דרך בשולחן העבודה נכשלה בגלל\n{e}" if is_heb_locale else f"Creating Desktop shortcut failed because\n{e}")
-   
+            
 
     
     
@@ -1950,10 +1991,7 @@ def add_new_location():
                 long = float(long)
                 # אם אין בשדה הגובה כלום - אז הגובה שווה אפס עשרוני
                 elev = float(elev) if elev else 0.0
-                # חישוב איזור הזמן לפי קו האורך והרוחב כרגע בוטל ויחושב בטעינת התוכנה הבאה לאחר ההוספה
-                ###########tzone = TimezoneFinder().timezone_at(lng=long, lat=latit)
-                #tzone = get_tz(long, latit)
-
+                
             # אם יש בעיה, להודיע למשתמש
             except ValueError:
                 if is_heb_locale:
@@ -2063,6 +2101,9 @@ def get_locations(locations_path,locations_edited_path,cu_dir_path):
     # טיפול בכל מיקום ומיקום שבקובץ הנתונים בלי לחשב את השורה הראשונה שהיא רק המפתח מה יש בכל עמודה
     for i in range(len(locations_data))[1:]:
          
+        '''
+        # כבר לא צריך את כל זה כי חיפוש איזור הזמן הוא מהיר מאוד עם get_tz
+        
         # אם חסר מידע בעמודת הגובה או בעמודת איזור הזמן יש להגדיר אותם ולאחר מכן לנסות לשמור את קובץ הנתונים העדכני
         if locations_data[i][3] == "" or locations_data[i][4] == "":
             
@@ -2072,20 +2113,21 @@ def get_locations(locations_path,locations_edited_path,cu_dir_path):
 
             # אם אין איזור זמן בעמודת איזור הזמן, יש למצוא את איזור הזמן באמצעות המיקום הגיאוגרפי ולהגדיר אותו במקום המתאים
             if locations_data[i][4] == "":
-                ######locations_data[i][4] = TimezoneFinder().timezone_at(lng=float(locations_data[i][2]), lat=float(locations_data[i][1]))
                 locations_data[i][4] = get_tz(float(locations_data[i][2]), float(locations_data[i][1]))
 
             # כתיבת הנתונים המתוקנים לתוך קובץ חדש שיאוכסן בתיקיייה של התוכנה באפפ-דאטה ובפעם הבאה שיפתחו את התוכנה המיקומים ייקראו מהמיקום החדש
             with open(locations_edited_path, 'w', encoding=cu_encod, newline='') as newFile:
                 myWriter = csv.writer(newFile)
-                myWriter.writerows(locations_data)
+                myWriter.writerows(locations_data)         
+        '''
      
         # הגדרת אורך רוחב גובה איזור זמן ושם של המיקום
         location_name_heb = locations_data[i][0]
         location_lat = float(locations_data[i][1])
         location_lon = float(locations_data[i][2])
-        location_elevation = float(locations_data[i][3])
-        timezone_location = locations_data[i][4]
+        location_elevation = float(locations_data[i][3]) if locations_data[i][3] != "" else 0.0
+        #timezone_location = locations_data[i][4]
+        timezone_location = get_tz(location_lon, location_lat)
         location_name_en = locations_data[i][5]
         
         # הכנסת כל המיקומים לתוך מערך המיקומים    
@@ -2128,25 +2170,6 @@ def get_stars(stars_path,cu_dir_path):
 
     # טיפול בכל מיקום ומיקום שבקובץ הכוכבים בלי לחשב את השורה הראשונה שהיא רק המפתח מה יש בכל עמודה
     for i in range(len(stars_data))[1:]:
-         
-        '''
-        # אם חסר מידע בעמודת הגובה או בעמודת איזור הזמן יש להגדיר אותם ולאחר מכן לנסות לשמור את קובץ הנתונים העדכני
-        if locations_data[i][3] == "" or locations_data[i][4] == "":
-            
-            # אם אין גובה בעמודת הגובה, יש להגדיר את הגובה בעמודת הגובה על אפס
-            if locations_data[i][3] == "":
-                locations_data[i][3] = 0
-
-            # אם אין איזור זמן בעמודת איזור הזמן, יש למצוא את איזור הזמן באמצעות המיקום הגיאוגרפי ולהגדיר אותו במקום המתאים
-            if locations_data[i][4] == "":
-                ######locations_data[i][4] = TimezoneFinder().timezone_at(lng=float(locations_data[i][2]), lat=float(locations_data[i][1]))
-                locations_data[i][4] = get_tz(float(locations_data[i][2]), float(locations_data[i][1]))
-
-            # כתיבת הנתונים המתוקנים לתוך קובץ חדש שיאוכסן בתיקיייה של התוכנה באפפ-דאטה ובפעם הבאה שיפתחו את התוכנה המיקומים ייקראו מהמיקום החדש
-            with open(locations_edited_path, 'w', encoding=cu_encod, newline='') as newFile:
-                myWriter = csv.writer(newFile)
-                myWriter.writerows(locations_data)
-        '''
      
         # הגדרת כמה משתנים נפרדים עבור העמודות השונות שבקובץ הכוכבים
         name_he = stars_data[i][0]
@@ -2167,14 +2190,6 @@ def get_stars(stars_path,cu_dir_path):
         # הכנסת כל הכוכבים לתוך מערך הכוכבים כולל מגניטודה    
         stars.append({"name_en": name_en, "name_he": name_he, "magnitude": magnitude, "skyfield Star": Star(names=name_en,ra_hours=ra_hours,dec_degrees=dec_degrees,epoch=epoch_year,parallax_mas=parallax_mas,ra_mas_per_year=ra_mas_per_year,dec_mas_per_year=dec_mas_per_year)})
         
-    '''
-    # במקרה שאין קובץ מיקומים ערוך בתיקיית אפפ-דאטא, צריך לשים שם קובץ זה כדי שהמשתמש יוכל לערוך אותו
-    if not os.path.exists(locations_edited_path):
-        # כתיבת הנתונים המתוקנים לתוך קובץ חדש שיאוכסן בתיקיייה של התוכנה באפפ-דאטה ובפעם הבאה שיפתחו את התוכנה המיקומים ייקראו מהמיקום החדש
-        with open(locations_edited_path, 'w', encoding=cu_encod, newline='') as newFile:
-            myWriter = csv.writer(newFile)
-            myWriter.writerows(locations_data)
-    '''  
     return stars
 
 
@@ -3250,10 +3265,13 @@ def time_location_timezone():
         User_choice_elevation = float(elevation_part.get())
         location = wgs84.latlon(User_choice_lat, User_choice_lon, User_choice_elevation)
         
-        # הגדרה של איזור זמן כללי לפי הפרש מגריניץ. שימו לב שזה נכון במדוייק רק לקו האורך שמתחלק בדיוק
-        # בבחירה ידנית אין שעון קיץ גם אחרי תחילת שנת 1918
-        utc_different = abs(round(location.longitude.degrees/15))
-        location_timezone = timezone(f"Etc/GMT-{utc_different}") if location.longitude.degrees >= 0 else timezone(f"Etc/GMT+{utc_different}")
+        ####### הגדרה של איזור זמן כללי לפי הפרש מגריניץ. שימו לב שזה נכון במדוייק רק לקו האורך שמתחלק בדיוק
+        ####### בבחירה ידנית אין שעון קיץ גם אחרי תחילת שנת 1918
+        ####### utc_different = abs(round(location.longitude.degrees/15))
+        ####### location_timezone = timezone(f"Etc/GMT-{utc_different}") if location.longitude.degrees >= 0 else timezone(f"Etc/GMT+{utc_different}")
+        # עכשיו זה אפשרי לעשות פשוט כך, בגלל הספרייה המהירה tzfpy-get_tz
+        timezone_name = get_tz(User_choice_lon, User_choice_lat)
+        location_timezone = timezone(timezone_name)
         
        
     # בכל מקרה אחר, הנתונים של המיקום נלקחים מתוך קובץ האקסל של המיקומים בהתאמה לבחירת המשתמש  
@@ -8982,7 +9000,7 @@ if __name__ == '__main__':
     
 
     #-------------------################------------------
-    '''
+    r'''
     # איזור הטיפול ברשיון שימוש בתוכנה. צריך רישיון שימוש בתוכנה ואם לא אז התוכנה לא פועלת
     # כרגע ביטלתי את עניין הצורך ברישיון, אז לכן סטארט מופעל בכל מקרה
     
@@ -9012,7 +9030,7 @@ if __name__ == '__main__':
             tkMessageBox.showinfo( "רישיון תוכנת כוכבים וזמנים", "כעת ניתן להשתמש בתוכנה בחופשיות")
         # אם הקוד לא נכון
         else:
-            tkMessageBox.showinfo( "רישיון תוכנת כוכבים וזמנים", "קוד שגוי/טעות בהקלדה, נסה שוב")
+            tkMessageBox.showinfo( "רישיון תוכנת כוכבים וזמנים", "קוד שגוי או טעות בהקלדה, נסה שוב")
 
     # פונקצייה שכרגע לא פעילה לטיפול בניסיון של התוכנה למי שאין לו רישיון. 
     # הניסיון אפשרי רק פעם אחת כי ברגע שפותחים פעם אחת נמחקת מקובץ הרישיון השורה שבה כתוב שעדיין לא בוצע ניסיון
@@ -9028,7 +9046,7 @@ if __name__ == '__main__':
         tkMessageBox.showinfo( "רישיון תוכנת כוכבים וזמנים", "התוכנה נפתחה לשימוש פעם אחת")
     
     # פתיחת קובץ הרישיון וקריאה של מה שכתוב בו
-    with open(f'rf"{cu_dir_path}\cu_license.txt", 'r', encoding=cu_encod) as f:
+    with open(rf"{cu_dir_path}\cu_license.txt", 'r', encoding=cu_encod) as f:
         if f.mode=='r':
             line1 = f.readline()
             line2 = f.readline()
