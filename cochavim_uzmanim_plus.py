@@ -1794,42 +1794,42 @@ def install_cu():
             try:
                 from win32com.client import Dispatch
             except ImportError:
-                messagebox.showerror("Error", "pywin32 is not installed")
+                tkMessageBox.showerror("Error", "pywin32 is not installed")
                 return
 
             # שולחן עבודה
             desktop_dir = os.path.join(os.environ['USERPROFILE'], 'Desktop')
-            if messagebox.askyesno("Shortcut Creation", txt_desktop_question):
+            if tkMessageBox.askyesno("Shortcut Creation", txt_desktop_question):
                 try:
                     create_windows_shortcut(desktop_dir)
-                    messagebox.showinfo("Success", txt_success_desktop)
+                    tkMessageBox.showinfo("Success", txt_success_desktop)
                 except Exception as e:
-                    messagebox.showerror("Error", f"{txt_error}{e}")
+                    tkMessageBox.showerror("Error", f"{txt_error}{e}")
 
             # תפריט התחל
-            if messagebox.askyesno("Shortcut Creation", txt_start_question):
+            if tkMessageBox.askyesno("Shortcut Creation", txt_start_question):
                 try:
                     start_menu_dir = os.path.join(os.environ.get('ALLUSERSPROFILE', ''), r'Microsoft\Windows\Start Menu\Programs')
                     if not os.path.exists(start_menu_dir):
                         start_menu_dir = os.path.join(os.environ['APPDATA'], r'Microsoft\Windows\Start Menu\Programs')
                     create_windows_shortcut(start_menu_dir)
-                    messagebox.showinfo("Success", txt_success_start)
+                    tkMessageBox.showinfo("Success", txt_success_start)
                 except Exception as e:
-                    messagebox.showerror("Error", f"{txt_error}{e}")
+                    tkMessageBox.showerror("Error", f"{txt_error}{e}")
 
         # ---------- LINUX ----------
         elif system == "linux":
             desktop_dir = Path.home() / "Desktop"
-            if messagebox.askyesno("Shortcut Creation", txt_desktop_question):
+            if tkMessageBox.askyesno("Shortcut Creation", txt_desktop_question):
                 try:
                     create_linux_desktop_entry(desktop_dir)
-                    messagebox.showinfo("Success", txt_success_desktop)
+                    tkMessageBox.showinfo("Success", txt_success_desktop)
                 except Exception as e:
-                    messagebox.showerror("Error", f"{txt_error}{e}")
+                    tkMessageBox.showerror("Error", f"{txt_error}{e}")
 
         # ---------- מערכות לא נתמכות ----------
         else:
-            messagebox.showerror("Error", txt_error_os)
+            tkMessageBox.showerror("Error", txt_error_os)
 
         
     
