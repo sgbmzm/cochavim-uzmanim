@@ -1896,7 +1896,7 @@ def install_cu():
         shutil.copytree(absolute_temp_path, rf"{installation_dir}\_internal")
         
         # הוצאת קובץ התוכנה עצמו מתוך תיקיית _internal לתיקייה הראשית cu_installation כי בלי זה התוכנה לא תפעל
-        shutil.copy(rf"{installation_dir}\cochavim_uzmanim_plus_dir.exe", rf"{cu_dir_path}\cu_installation\cochavim_uzmanim_plus_dir.exe")
+        shutil.copy(rf"{installation_dir}\_internal\cochavim_uzmanim_plus_dir.exe", rf"{installation_dir}\cochavim_uzmanim_plus_dir.exe")
         
         # הנתיב החדש לסקריפט פייתון המקורי של התוכנה למקרה שאני רוצה למחוק אותו כדי שהמשתמש לא יראה את הקוד המלא
         #cu_script_new_path = rf"{cu_dir_path}\cu_installation\_internal\cochavim_uzmanim_plus.py"
