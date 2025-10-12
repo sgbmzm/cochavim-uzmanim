@@ -1742,17 +1742,17 @@ def is_cu_software_update(manual=True):
 
 # פונקצייה להתקנה קבועה של תוכנת כוכבים וזמנים
 def install_cu():
+    
+    # בדיקה מה מערכת ההפעלה של המשתמש
+    system = platform.system().lower()
 
     # פונקצייה ליצירת קיצור דרך על שולחן העבודה ותפריט התחל-תוכניות
     # הפונקצייה מקבלת שלושה ארגומנטים: 1. נתיב מלא לקובץ שרוצים לעשות לו קיצור דרך. 2. השם שבו ייקרא קיצור הדרך. 3. המקום שבו ישימו את קיצור הדרך וברירת המחדל היא בשולחן העבודה
     # נבנתה בעזרת צ'אט-גיפיטי  
     def create_shortcut(target_path, shortcut_name="shortcut", is_heb_locale=True):
         
-        # בדיקה מה מערכת ההפעלה של המשתמש
-        system = platform.system().lower()
-
         # ---------- פונקציה פנימית ליצירת קיצור דרך ב-Windows ----------
-        def create_windows_shortcut(destination_folder):
+        def create_windows_shortcuts(destination_folder):
             shortcut_path = os.path.join(destination_folder, f"{shortcut_name}.lnk")
             # אם הקיצור קיים, מוחק קודם
             if os.path.exists(shortcut_path):
@@ -1760,10 +1760,8 @@ def install_cu():
             shell = Dispatch('WScript.Shell')
             shortcut = shell.CreateShortCut(shortcut_path)
             shortcut.TargetPath = target_path
-            shortcut.WorkingDirectory = os.path.dirname(target_path)
-            shortcut.IconLocation = target_path
             shortcut.save()
-
+            
         # ---------- פונקציה פנימית ליצירת קיצור דרך ב-Linux ----------
         def create_linux_desktop_entry(destination_folder):
             shortcut_path = Path(destination_folder) / f"{shortcut_name}.desktop"
@@ -1781,6 +1779,7 @@ def install_cu():
                 f.write(content)
             os.chmod(shortcut_path, 0o755)
 
+
         # טקסטים בהתאם לשפה
         txt_desktop_question = "האם ברצונך ליצור קיצור דרך לשולחן העבודה?" if is_heb_locale else "Do you want to create a desktop shortcut?"
         txt_start_question = "האם ברצונך ליצור גם קיצור דרך בתפריט התחל?" if is_heb_locale else "Do you also want to add a Start Menu shortcut?"
@@ -1788,35 +1787,28 @@ def install_cu():
         txt_success_start = "קיצור דרך בתפריט התחל נוצר בהצלחה" if is_heb_locale else "Start Menu shortcut created successfully"
         txt_error = "יצירת קיצור דרך נכשלה בגלל:\n" if is_heb_locale else "Creating shortcut failed because:\n"
         txt_error_os = "מערכת ההפעלה אינה נתמכת ליצירת קיצור דרך" if is_heb_locale else "Operating system not supported for shortcut creation"
-
+        
         # ---------- WINDOWS ----------
         if system == "windows":
-            try:
-                from win32com.client import Dispatch
-            except ImportError:
-                tkMessageBox.showerror("Error", "pywin32 is not installed")
-                return
-
+            
             # שולחן עבודה
             desktop_dir = os.path.join(os.environ['USERPROFILE'], 'Desktop')
             if tkMessageBox.askyesno("Shortcut Creation", txt_desktop_question):
                 try:
-                    create_windows_shortcut(desktop_dir)
+                    create_windows_shortcuts(desktop_dir)
                     tkMessageBox.showinfo("Success", txt_success_desktop)
                 except Exception as e:
-                    tkMessageBox.showerror("Error", f"{txt_error}{e}")
+                    tkMessageBox.showerror("create_shortcut_desktop_Error", f"{txt_error}{e}")
 
             # תפריט התחל
             if tkMessageBox.askyesno("Shortcut Creation", txt_start_question):
                 try:
-                    start_menu_dir = os.path.join(os.environ.get('ALLUSERSPROFILE', ''), r'Microsoft\Windows\Start Menu\Programs')
-                    if not os.path.exists(start_menu_dir):
-                        start_menu_dir = os.path.join(os.environ['APPDATA'], r'Microsoft\Windows\Start Menu\Programs')
-                    create_windows_shortcut(start_menu_dir)
+                    start_menu_dir = os.path.join(os.environ['APPDATA'], r'Microsoft\Windows\Start Menu\Programs')
+                    create_windows_shortcuts(start_menu_dir)
                     tkMessageBox.showinfo("Success", txt_success_start)
                 except Exception as e:
-                    tkMessageBox.showerror("Error", f"{txt_error}{e}")
-
+                    tkMessageBox.showerror("create_shortcut_start_menu_Error", f"{txt_error}{e}")
+        
         # ---------- LINUX ----------
         elif system == "linux":
             desktop_dir = Path.home() / "Desktop"
@@ -1830,8 +1822,7 @@ def install_cu():
         # ---------- מערכות לא נתמכות ----------
         else:
             tkMessageBox.showerror("Error", txt_error_os)
-
-        
+ 
     
     #-----------------------------------
     # מכאן והלאה הפונקצייה הראשית של התקנת התוכנה
@@ -1842,8 +1833,11 @@ def install_cu():
     # הצהרה על משתנה גלובלי שמחזיק את המיקום של תיקיית התוכנה
     global cu_dir_path
     
+    # הגדרת שם הקובץ של קובץ ההתקנה לפי מערכות ההפעלה
+    cochavim_uzmanim_plus_dir_filename = "cochavim_uzmanim_plus_dir.exe" if is_windows else "cochavim_uzmanim_plus_dir"
+    
     # הגדרת הנתיב המוחלט שבתיקייה הזמנית שבה נמצא קובץ הפעלה של תוכנת כוכבים וזמנים כאשר היא פועלת מתיקייה
-    cu_dir_exe_path = resource_path("cochavim_uzmanim_plus_dir.exe")
+    cu_dir_exe_path = resource_path(cochavim_uzmanim_plus_dir_filename)
     
     # אם אין קובץ הפעלה מתאים יש להוציא הודעה ולהפסיק את הפעולה
     if not os.path.exists(cu_dir_exe_path):
@@ -1852,16 +1846,7 @@ def install_cu():
     
     # קבלת נתיב מלא של התיקייה הזמנית שממנה פועלת כעת התוכנה
     absolute_temp_path = os.path.abspath(os.path.dirname(cu_dir_exe_path))
-    
-    '''
-    # זה כרגע לא רלוונטי כי בגרסה מותקנת כלל לא מוצג הלחצן של התקנת התוכנה
-    # בדיקה האם שם התיקייה מתחיל כך "_MEI" (האם היא נמצאת בקרן הזמנית של PyInstaller)
-    if not os.path.basename(absolute_temp_path).startswith("_MEI"):
-        # אם שם התיקייה לא מתחיל כך אין מדובר בתוכנה שהיא בקובץ אחד ולכן יש להוציא הודעה ולהפסיק את התהליך
-        tkMessageBox.showinfo("התקנת תוכנת כוכבים וזמנים", f"לא ניתן להתקין מתוך תוכנה שכבר מותקנת")
-        return
-        '''
-      
+          
     try:        
         # נתיב התיקייה שבה נשמרים קבצי ההתקנה
         installation_dir = rf"{cu_dir_path}\cu_installation"
@@ -1896,7 +1881,7 @@ def install_cu():
         shutil.copytree(absolute_temp_path, rf"{installation_dir}\_internal")
         
         # הוצאת קובץ התוכנה עצמו מתוך תיקיית _internal לתיקייה הראשית cu_installation כי בלי זה התוכנה לא תפעל
-        shutil.copy(rf"{installation_dir}\_internal\cochavim_uzmanim_plus_dir.exe", rf"{installation_dir}\cochavim_uzmanim_plus_dir.exe")
+        shutil.copy(rf"{installation_dir}\_internal\{cochavim_uzmanim_plus_dir_filename}", rf"{installation_dir}\{cochavim_uzmanim_plus_dir_filename}")
         
         # הנתיב החדש לסקריפט פייתון המקורי של התוכנה למקרה שאני רוצה למחוק אותו כדי שהמשתמש לא יראה את הקוד המלא
         #cu_script_new_path = rf"{cu_dir_path}\cu_installation\_internal\cochavim_uzmanim_plus.py"
@@ -1909,20 +1894,19 @@ def install_cu():
         else:
             tkMessageBox.showinfo("Installing cochavim uzmanim software", f"The software has been installed in the following folder\n{installation_dir}\nNow we will create shortcuts on the desktop and start menu")
             
-        # הנתיב החדש לקובץ ההפעלה של התוכנה המותקנת
-        cu_dir_exe_new_path = rf"{cu_dir_path}\cu_installation\cochavim_uzmanim_plus_dir.exe"
-        # שם קיצור הדרך
-        shortcut_name = "כוכבים וזמנים גרסה מותקנת" if is_heb_locale else "cochavim uzmanim installed version"
-        # קריאה לפונקציית יצירת קיצורי הדרך שהוגדרה לעיל
-        create_shortcut(cu_dir_exe_new_path, shortcut_name, is_heb_locale)
-      
     # במקרה של שגיאה בהתקנה
     except Exception as e:
         tkMessageBox.showinfo(title_for_installation_message, f"התקנת התוכנה נכשלה בגלל {e}" if is_heb_locale else f"Software installation failed because {e}")
-        return
+        return # אם לא הצליח יוצאים מהפונקצייה ולא ממשיכים ליצירת קיצורי דרך
             
-
-    
+    # אם ההתקנה הצליחה יוצרים קיצורי דרך לתוכנה המותקנת
+    # הנתיב החדש לקובץ ההפעלה של התוכנה המותקנת
+    cu_dir_exe_new_path = rf"{cu_dir_path}\cu_installation\{cochavim_uzmanim_plus_dir_filename}"
+    # שם קיצור הדרך
+    shortcut_name = "כוכבים וזמנים גרסה מותקנת" if is_heb_locale else "cochavim uzmanim installed version"
+    # קריאה לפונקציית יצירת קיצורי הדרך שהוגדרה לעיל
+    create_shortcut(cu_dir_exe_new_path, shortcut_name, is_heb_locale)
+  
     
 # פונקצייה למחיקת קובץ המיקומים הערוך כדי שייכתב קובץ עדכני בפתיחת התוכנה הבאה
 # מיועד לשימוש במקרה של עדכון התוכנה
@@ -8547,7 +8531,6 @@ if __name__ == '__main__':
     de441s_url = "https://github.com/sgbmzm/cochavim-uzmanim/releases/download/cochavim_uzmanim_plus/de441s.bsp"
     de441s_file_name = "de441s.bsp"
     mb.menu.add_command ( label="הורדת de441s.bsp" if is_heb_locale else "Downloading de441s.bsp", command= lambda: downloading_files(de441s_url,de441s_file_name))
-    
     # אם זו גרסת תוכנה שאינה מותקנת הוספת כפתור התקנה
     if not is_installed:
         mb.menu.add_command ( label="התקנה קבועה של תוכנת כוכבים וזמנים" if is_heb_locale else "Installation of cochavim uzmanim", command=install_cu)
