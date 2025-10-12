@@ -493,7 +493,7 @@ cu_screenheight = 768
 cu_scaling = 1.32 # כנראה המקורי היה 1.3 אבל למעשה בחרתי 1.32 כי המקורי עשה בעיות וזה כנראה פועל היטב במחשבים גדולים
 
 # תאריך גרסת התוכנה הראשית
-cu_version_date = dt.date(2025,10,10)
+cu_version_date = dt.date(2025,10,12)
 
 # פונקצייה שמחזירה שם יחד עם מיקום של קובץ בתיקיית תוכנת כוכבים וזמנים
 '''
@@ -1610,7 +1610,7 @@ def edit_locations_file(location = "NONE"):
             if msg_box == 'yes':
                 # חיפוש בכל מיקום ומיקום שבקובץ הנתונים בלי לחשב את השורה הראשונה שהיא רק המפתח מה יש בכל עמודה
                 for i in range(len(locations_data))[1:]:
-                    location_name = locations_data[i][0] if is_heb_locale else locations_data[i][5]
+                    location_name = locations_data[i][0] if is_heb_locale else locations_data[i][-1] # תמיד השם באנגלית נמצא במיקום האחרון
                     if location_name == city.get():
                         locations_data[i] = ""
                         #del(locations_data[i])
@@ -1627,8 +1627,8 @@ def edit_locations_file(location = "NONE"):
             if msg_box == 'yes':
                 # חיפוש בכל מיקום ומיקום שבקובץ הנתונים בלי לחשב את השורה הראשונה שהיא רק המפתח מה יש בכל עמודה
                 for i in range(len(locations_data))[1:]:
-                    location_name = locations_data[i][0] if is_heb_locale else locations_data[i][5]
-                    first_row_location_name = locations_data[1][0] if is_heb_locale else locations_data[1][5]
+                    location_name = locations_data[i][0] if is_heb_locale else locations_data[i][-1] # תמיד השם באנגלית נמצא במיקום האחרון
+                    first_row_location_name = locations_data[1][0] if is_heb_locale else locations_data[1][-1] # תמיד השם באנגלית נמצא במיקום האחרון
                     if location_name == city.get() and first_row_location_name != city.get():
                         locations_data.insert(1,locations_data[i])
                         del(locations_data[i+1])
@@ -2068,38 +2068,16 @@ def get_locations(locations_path,locations_edited_path,cu_dir_path):
 
     # טיפול בכל מיקום ומיקום שבקובץ הנתונים בלי לחשב את השורה הראשונה שהיא רק המפתח מה יש בכל עמודה
     for i in range(len(locations_data))[1:]:
-         
-        '''
-        # כבר לא צריך את כל זה כי חיפוש איזור הזמן הוא מהיר מאוד עם get_tz
-        
-        # אם חסר מידע בעמודת הגובה או בעמודת איזור הזמן יש להגדיר אותם ולאחר מכן לנסות לשמור את קובץ הנתונים העדכני
-        if locations_data[i][3] == "" or locations_data[i][4] == "":
-            
-            # אם אין גובה בעמודת הגובה, יש להגדיר את הגובה בעמודת הגובה על אפס
-            if locations_data[i][3] == "":
-                locations_data[i][3] = 0
-
-            # אם אין איזור זמן בעמודת איזור הזמן, יש למצוא את איזור הזמן באמצעות המיקום הגיאוגרפי ולהגדיר אותו במקום המתאים
-            if locations_data[i][4] == "":
-                locations_data[i][4] = get_tz(float(locations_data[i][2]), float(locations_data[i][1]))
-
-            # כתיבת הנתונים המתוקנים לתוך קובץ חדש שיאוכסן בתיקיייה של התוכנה באפפ-דאטה ובפעם הבאה שיפתחו את התוכנה המיקומים ייקראו מהמיקום החדש
-            with open(locations_edited_path, 'w', encoding=cu_encod, newline='') as newFile:
-                myWriter = csv.writer(newFile)
-                myWriter.writerows(locations_data)         
-        '''
      
         # הגדרת אורך רוחב גובה איזור זמן ושם של המיקום
         location_name_heb = locations_data[i][0]
         location_lat = float(locations_data[i][1])
         location_lon = float(locations_data[i][2])
         location_elevation = float(locations_data[i][3]) if locations_data[i][3] != "" else 0.0
-        #timezone_location = locations_data[i][4]
-        timezone_location = get_tz(location_lon, location_lat)
-        location_name_en = locations_data[i][5]
+        location_name_en = locations_data[i][-1] # תמיד במיקום האחרון. טוב גם לקבצים ישנים שהשם באנגלית היה בטור 5 כי בטור 4 היה איזור זמן
         
         # הכנסת כל המיקומים לתוך מערך המיקומים    
-        locations.append({"skyfield_location": wgs84.latlon(location_lat, location_lon, location_elevation), "timezone_location": timezone_location, "location_name_heb": location_name_heb, "location_name_en": location_name_en})
+        locations.append({"skyfield_location": wgs84.latlon(location_lat, location_lon, location_elevation), "location_name_heb": location_name_heb, "location_name_en": location_name_en})
     
     # במקרה שאין קובץ מיקומים ערוך בתיקיית אפפ-דאטא, צריך לשים שם קובץ זה כדי שהמשתמש יוכל לערוך אותו
     if not os.path.exists(locations_edited_path):
@@ -3233,14 +3211,6 @@ def time_location_timezone():
         User_choice_elevation = float(elevation_part.get())
         location = wgs84.latlon(User_choice_lat, User_choice_lon, User_choice_elevation)
         
-        ####### הגדרה של איזור זמן כללי לפי הפרש מגריניץ. שימו לב שזה נכון במדוייק רק לקו האורך שמתחלק בדיוק
-        ####### בבחירה ידנית אין שעון קיץ גם אחרי תחילת שנת 1918
-        ####### utc_different = abs(round(location.longitude.degrees/15))
-        ####### location_timezone = timezone(f"Etc/GMT-{utc_different}") if location.longitude.degrees >= 0 else timezone(f"Etc/GMT+{utc_different}")
-        # עכשיו זה אפשרי לעשות פשוט כך, בגלל הספרייה המהירה tzfpy-get_tz
-        timezone_name = get_tz(User_choice_lon, User_choice_lat)
-        location_timezone = timezone(timezone_name)
-        
        
     # בכל מקרה אחר, הנתונים של המיקום נלקחים מתוך קובץ האקסל של המיקומים בהתאמה לבחירת המשתמש  
     # ברירת המחדל של המיקומים זה המיקום הראשון ברשימת המיקומים
@@ -3258,17 +3228,25 @@ def time_location_timezone():
         for i in range (len(locations)):
             if city.get() in [ locations[i]["location_name_heb"], locations[i]["location_name_en"] ]:
                 location = locations[i]["skyfield_location"]
-                # קליטת איזור זמן רגיל מקובץ המיקומים מיועדת רק! עבור שנים שלאחר תחילת שנת 1918 שמאז יש התייחסות לשעון חורף וקיץ וכו
-                # לפני שנת 1918 אין!!! להשתמש באיזור הזמן הרגיל אלא באיזור זמן מתואם הקרוב למיקום לפי 15 מעלות אורך
-                if input_date_time >= datetime(1918,1,1):
-                    location_timezone = timezone(locations[i]["timezone_location"])
-                else:
-                    # הגדרה של איזור זמן כללי לפי הפרש מגריניץ. שימו לב שזה נכון במדוייק רק לקו האורך שמתחלק בדיוק ל-15 כגון קו אורך 30 או 45 וכו
-                    # לפני שנת 1918 אין שעון קיץ ולדוגמא ישראל תמיד תהיה שעתיים אחרי גריניץ
-                    utc_different = abs(round(location.longitude.degrees/15)) % 24
-                    location_timezone = timezone(f"Etc/GMT-{utc_different}") if location.longitude.degrees >= 0 else timezone(f"Etc/GMT+{utc_different}")
-                    
-                
+      
+    ###############################################################################
+    # חישוב איזור זמן רגיל באמצעות get_tz מיועד רק! עבור שנים שלאחר תחילת שנת 1918 שמאז יש התייחסות לשעון חורף וקיץ וכו
+    # לפני שנת 1918 אין!!! להשתמש באיזור הזמן הרגיל אלא באיזור זמן מתואם הקרוב למיקום לפי 15 מעלות אורך כדי שהזמנים ההיסטוריים יהיו כמו שנהג אז
+    # הגדרת המשתנה שקובע האם ללכת לפי איזור זמן של tzfpy או לפי איזור זמן ידני
+    is_tzfpy_timezone = True if input_date_time >= datetime(1918,1,1) else False
+    
+    if is_tzfpy_timezone:    
+        timezone_location_name = get_tz(location.longitude.degrees, location.latitude.degrees)
+    else:
+        # הגדרה של איזור זמן כללי לפי הפרש מגריניץ. שימו לב שזה נכון במדוייק רק לקו האורך שמתחלק בדיוק ל-15 כגון קו אורך 30 או 45 וכו
+        # לפני שנת 1918 אין שעון קיץ ולדוגמא ישראל תמיד תהיה שעתיים אחרי גריניץ
+        utc_different = abs(round(location.longitude.degrees/15)) % 24
+        timezone_location_name = f"Etc/GMT-{utc_different}" if location.longitude.degrees >= 0 else f"Etc/GMT+{utc_different}"
+    
+    # הגדרת איזור הזמן לפי שם איזור הזמן שנקבע
+    location_timezone = timezone(timezone_location_name)
+    ###################################################################################    
+            
     
     # הגדרת הזמן 
     # זמן של עכשיו לחישוב רציף או זמן מהמשתמש לכל שאר האפשרויות
@@ -8970,8 +8948,9 @@ if __name__ == '__main__':
         tkMessageBox.showinfo("שגיאה", f'בתיקייה\n{cu_dir_path}\n\nלא קיים קובץ אֶפְאֶמְאֶרִיס של נאס"א ששמו\n{"de440.bsp"}\nללא קובץ זה התוכנה אינה יכולה לחשב נתונים\n\nניתן להוריד את הקובץ מאתר כוכבים וזמנים\nhttps://sites.google.com/view/cochavim-uzmanim/\n\nבחלון אפשרויות נוספות ללחוץ על: פתיחת תיקיית כוכבים וזמנים לשים את הקובץ (בשֵׁם זה!) בתיקייה, ולהפעיל מחדש את התוכנה')
         #ws.destroy()
     
-    # פעולה קריטית בהפעלת התוכנה: הכנסת תאריך ושעה נוכחיים עבור המיקום הראשון ברשימת המיקומים, בשעון העליון, מיד בכניסה לתוכנה  
-    set_date_time(skyfield_to_cu_time(ts.now(), timezone(locations[0]["timezone_location"])))
+    # פעולה קריטית בהפעלת התוכנה: הכנסת תאריך ושעה כלשהם לשעון העליון
+    # אני בוחר להגדיר על תאריך ושעה נוכחיים לפי המחשב אבל אפשר כל תאריך ושעה
+    set_date_time(datetime.now())
                  
     #------------------------------
     # כאשר התוכנה פועלת כתוכנה סגורה יש לסגור את מסך טעינת התוכנה כשהתוכנה גומרת להיטען
