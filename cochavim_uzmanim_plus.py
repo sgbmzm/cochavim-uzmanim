@@ -493,7 +493,7 @@ cu_screenheight = 768
 cu_scaling = 1.32 # כנראה המקורי היה 1.3 אבל למעשה בחרתי 1.32 כי המקורי עשה בעיות וזה כנראה פועל היטב במחשבים גדולים
 
 # תאריך גרסת התוכנה הראשית
-cu_version_date = dt.date(2025,10,12)
+cu_version_date = dt.date(2026,2,3)
 
 # פונקצייה שמחזירה שם יחד עם מיקום של קובץ בתיקיית תוכנת כוכבים וזמנים
 '''
@@ -3359,7 +3359,11 @@ def time_location_timezone():
     # החזרת שלושה פרמטרים: זמן בשעון מקומי, מיקום, ואיזור זמן
     return time,location,location_timezone
 
-    
+
+# משתנים גלובליים חשובים מאוד עבור all_calculations כדי למנוע חישוב כבד של זיחות ושקיעות וכדומה כשאין צורך בחישוב חדש
+Today_SR, Today_SS, LAST_SS, NEXT_SR, LAST_SS_0_833, seconds_equation_of_time, str_equation_of_time = [None] * 7
+last_stamp = None
+
 # פונקציית זו היא הפונקצייה הראשית של התוכנה והיא קוראת לכל הפונקציות האחרות ומפעילה את כל החישובים    
 def all_calculations():
     
@@ -3376,34 +3380,67 @@ def all_calculations():
     # חישוב נתונים אסטרונומיים על בסיס השעה המקום ואיזור הזמן
     print_astro_calculations(time,location,location_timezone)
 
-
-    # החלק העליון של התוכנה פועל תמיד, אבל החלק שתלוי בחישובי זריחה ושקיעה לא פועל במקום שאין בו זריחה ושקיעה בכל יום כגון באיזור הקוטב הצפוני
-    # לכן צריך לנסות, ואם לא מצליחים לחשב שקיעות אז לא לחשב שעות זמניות ולא לחשב כמה שעות עברו מהשקיעה
-    try:
-        # קריאה לפונקציית חישוב שעות זמניות על זריחות ושקיעות בגובה המוגדר לפי הגדרת המשתמש בשעון הזמני
-        # תחילה חישוב הזריחות והשקיעות הדרושות: זריחה ושקיעה של היום עבור שעה זמנית ביום, שקיעה קודמת וזריחה הבאה עבור שעה זמנית בלילה
-        
-        # שיטה לא נכונה, אבל יש שחושבים כך: שעות זמניות מעלות השחר עד צאת הכוכבים של הגאונים. נקטתי לדוגמא מינוס 4 מעלות לצאת הכוכבים
-        # במקרה זה צריך לחשב יותר חישובים מהרגיל כי הזריחה והשקיעה הם לא באותו גובה שמש תחת האופק
-        if Halachic_method.get() in ['מג"א 16/4', "MGA 16/4"]:
-            Today_SR,_,_,_,_,_ = calculate_rising_seting(time,location,location_timezone,horizon=-16, body="sun",PLUS_MINUS = "NONE")
-            _,Today_SS,_,_,_,_ = calculate_rising_seting(time,location,location_timezone,horizon=-4, body="sun",PLUS_MINUS = "NONE")
-            _,LAST_SS,_,_,_,_ = calculate_rising_seting(time,location,location_timezone,horizon=-4, body="sun",PLUS_MINUS = "MINUS")
-            NEXT_SR,_,_,_,_,_ = calculate_rising_seting(time,location,location_timezone,horizon=-16, body="sun",PLUS_MINUS = "PLUS")
-        
-        # בכל מקרה אחר החישוב הוא לזריחה ולשקיעה באותו גובה תחת האופק
-        else:
-            # תחילה יש לקבל מה האופק שהמשתמש רוצה
-            gethorizon = gethorizon_Halachic_method()
-            Today_SR,Today_SS,_,_,_,_ = calculate_rising_seting(time,location,location_timezone,horizon=gethorizon, body="sun",PLUS_MINUS = "NONE")
-            _,LAST_SS,_,_,_,_ = calculate_rising_seting(time,location,location_timezone,horizon=gethorizon, body="sun",PLUS_MINUS = "MINUS")
-            NEXT_SR,_,_,_,_,_ = calculate_rising_seting(time,location,location_timezone,horizon=gethorizon, body="sun",PLUS_MINUS = "PLUS")
-
     
+    # הצהרה על המשתנים הגלובליים
+    global Today_SR, Today_SS, LAST_SS, NEXT_SR, LAST_SS_0_833, seconds_equation_of_time, str_equation_of_time
+    global last_stamp
+    
+    # שמירת חותמת של כל הנתונים החשובים שאם אחד מהם משתנה חייבים לחשב מחדש זריחות ושקיעות
+    stamp = (location.latitude.degrees, location.longitude.degrees, location.elevation.m, time.date(), time.utcoffset(), location_timezone, Halachic_method.get())
+    
+    # בכל מקרה כזה צריך לעדכן חישובים
+    need_update = stamp != last_stamp # זה עוזר גם לשנייה הראשונה כי אז last_stamp הוא None וגם לפעמים הבאות שאז הוא לא שווה אם משתנה משהו בתוך החותמת
+    
+    # לאחר שבדקנו אם צריך עדכון: עדכון המשתנה החיצוני בחותמת העכשווית לצורך הבדיקה הבאה
+    last_stamp = stamp
+    
+    # במקרה שצריך עדכון מחשבים מחדש זריחות ושקיעות וחצות וזה מעדכן את המשתנים הגלובליים שמחוץ לפונקצייה בערכים החדשים
+    if need_update:
+        print("צריך עדכון")
+        print("stamp: ", stamp)
+        print("last_stamp: ", last_stamp)
+        print("")
+        # החלק העליון של התוכנה פועל תמיד, אבל החלק שתלוי בחישובי זריחה ושקיעה לא פועל במקום שאין בו זריחה ושקיעה בכל יום כגון באיזור הקוטב הצפוני
+        # לכן צריך לנסות, ואם לא מצליחים לחשב שקיעות אז לא לחשב שעות זמניות ולא לחשב כמה שעות עברו מהשקיעה
+        try:
+            # קריאה לפונקציית חישוב שעות זמניות על זריחות ושקיעות בגובה המוגדר לפי הגדרת המשתמש בשעון הזמני
+            # תחילה חישוב הזריחות והשקיעות הדרושות: זריחה ושקיעה של היום עבור שעה זמנית ביום, שקיעה קודמת וזריחה הבאה עבור שעה זמנית בלילה
+            
+            # שיטה לא נכונה, אבל יש שחושבים כך: שעות זמניות מעלות השחר עד צאת הכוכבים של הגאונים. נקטתי לדוגמא מינוס 4 מעלות לצאת הכוכבים
+            # במקרה זה צריך לחשב יותר חישובים מהרגיל כי הזריחה והשקיעה הם לא באותו גובה שמש תחת האופק
+            if Halachic_method.get() in ['מג"א 16/4', "MGA 16/4"]:
+                Today_SR,_,_,_,_,_ = calculate_rising_seting(time,location,location_timezone,horizon=-16, body="sun",PLUS_MINUS = "NONE")
+                _,Today_SS,_,_,_,_ = calculate_rising_seting(time,location,location_timezone,horizon=-4, body="sun",PLUS_MINUS = "NONE")
+                _,LAST_SS,_,_,_,_ = calculate_rising_seting(time,location,location_timezone,horizon=-4, body="sun",PLUS_MINUS = "MINUS")
+                NEXT_SR,_,_,_,_,_ = calculate_rising_seting(time,location,location_timezone,horizon=-16, body="sun",PLUS_MINUS = "PLUS")
+            
+            # בכל מקרה אחר החישוב הוא לזריחה ולשקיעה באותו גובה תחת האופק
+            else:
+                # תחילה יש לקבל מה האופק שהמשתמש רוצה
+                gethorizon = gethorizon_Halachic_method()
+                Today_SR,Today_SS,_,_,_,_ = calculate_rising_seting(time,location,location_timezone,horizon=gethorizon, body="sun",PLUS_MINUS = "NONE")
+                _,LAST_SS,_,_,_,_ = calculate_rising_seting(time,location,location_timezone,horizon=gethorizon, body="sun",PLUS_MINUS = "MINUS")
+                NEXT_SR,_,_,_,_,_ = calculate_rising_seting(time,location,location_timezone,horizon=gethorizon, body="sun",PLUS_MINUS = "PLUS")
+
+        
+            
+            # חישוב מתי הייתה השקיעה האחרונה של מינוס 0.833 באמצעות פונקציית חישוב זריחות ושקיעות
+            _,LAST_SS_0_833,_,_,_,_ = calculate_rising_seting(time,location,location_timezone,horizon=-0.833, body="sun",PLUS_MINUS = "MINUS")
+            
+            
+            # חישוב משוואת הזמן והגדרתה למשבצת המתאימה וחישוב מספר השניות שיש במשוואת הזמן 
+            _, _, seconds_equation_of_time, str_equation_of_time  = calculate_transits_and_equation_of_time(time,location,location_timezone)
+          
+            
+        except IndexError:
+            
+            Today_SR, Today_SS, LAST_SS, NEXT_SR, LAST_SS_0_833, seconds_equation_of_time, str_equation_of_time = [None] * 7
+             
+        
+        
+    if Today_SR and Today_SS and LAST_SS and NEXT_SR:
         # חישוב השעות הזמניות לפי הזריחות והשקיעות שהוגדרו לעיל
         day_or_night,Sunrise_determines,Sunset_determines,temporal_hour,minutes_in_temporal_hour,minutes_in_day_or_night=calculate_temporal_hour(time,Today_SR,Today_SS,LAST_SS,NEXT_SR)
-
-        
         # הדפסות עבור שעון שעה זמנית
         print_day_or_night.set(day_or_night)
         print_Sunrise_determines.set(f'{Sunrise_determines:%H:%M:%S}')
@@ -3411,43 +3448,30 @@ def all_calculations():
         print_temporal_hour.set(temporal_hour)
         print_minutes_in_temporal_hour.set(minutes_in_temporal_hour)
         print_minutes_in_day_or_night.set(minutes_in_day_or_night)
-
-    except IndexError:
+    else:
         print_temporal_hour.set("--")
         print_Sunrise_determines.set("שגיאה")
         print_Sunset_determines.set("שגיאה")
         print_minutes_in_temporal_hour.set("--")
         print_minutes_in_day_or_night.set("--")
-        #print_day_or_night.set("--")
-
-    try:
-        # חישוב מתי הייתה השקיעה האחרונה של מינוס 0.833 באמצעות פונקציית חישוב זריחות ושקיעות
-        _,LAST_SS_0_833,_,_,_,_ = calculate_rising_seting(time,location,location_timezone,horizon=-0.833, body="sun",PLUS_MINUS = "MINUS")
+        print_day_or_night.set("--")
+            
+    if LAST_SS_0_833:
         # חישוב כמה שניות עברו מהשקיעה האחרונה 0.833- שהייתה ועד עכשיו
         seconds_from_last_sunset = (time - LAST_SS_0_833).total_seconds()
         # החזרת והדפסת סטרינג מעוצב של שעות דקות ושניות שעברו מהשקיעה באמצעות פונקציית המרת שנייות
         print_hours_from_last_sunset.set(convert_seconds(seconds_from_last_sunset, to_hours=True))
-
-    except IndexError:
+    else:
         print_hours_from_last_sunset.set("שגיאה")
 
-
+    
+    
     # ניסיון לחישוב משוואת הזמן והדפסתה
-    try:      
-    # חישוב משוואת הזמן והגדרתה למשבצת המתאימה
-        _, _, seconds_equation_of_time, str_equation_of_time  = calculate_transits_and_equation_of_time(time,location,location_timezone)
-        print_equation_of_time.set(str_equation_of_time)
-
-    except IndexError:
-        print_equation_of_time.set("שגיאה")
-        #print_day_or_night.set("--")
-
-    # ניסיון לחישוב שעון מקומי אמיתי
-    # שימו לב: שעון מקומי ממוצע מודפס בפונקציית אול_כלכוליישנס כי חישובו לא תלוי בחישוב חצות ולכן אין צורך לעשות לו ניסיון
-    try:      
-        # חישוב מספר השניות שיש במשוואת הזמן 
-        _, _, seconds_equation_of_time, _  = calculate_transits_and_equation_of_time(time,location,location_timezone)
-        
+    if seconds_equation_of_time and str_equation_of_time:  
+     
+        # ניסיון לחישוב שעון מקומי אמיתי
+        # שימו לב: שעון מקומי ממוצע מודפס בפונקציית אול_כלכוליישנס כי חישובו לא תלוי בחישוב חצות ולכן אין צורך לעשות לו ניסיון
+           
         # חישוב השעה בשעון גריניץ לצורך חישוב שעון מקומי ממוצע
         utc_time = time.astimezone(timezone('utc'))
         ###########################
@@ -3465,13 +3489,21 @@ def all_calculations():
         # זה עדיין משאיר את שעון מקומי ממוצע בשגיאה
         corrected_seconds_equation_of_time = seconds_equation_of_time + mean_transit_and_error_timescale_dict["seconds_error_timescale"]
         Local_solar_time = lmt + timedelta(seconds=corrected_seconds_equation_of_time)
-        ##########################
         
         print_LSoT_time.set(f'{Local_solar_time:%H:%M:%S}')
-
-    except IndexError:
+        print_equation_of_time.set(str_equation_of_time)
+        
+    else:
         print_LSoT_time.set("שגיאה")
-        #print_day_or_night.set("--")
+        print_equation_of_time.set("שגיאה")
+
+
+    ##########################
+    
+    
+       
+        
+       
 
     # לרענן כל שנייה מחדש את החישובים באמצעות קריאות חוזרות לפונקציית כל החישובים
     # אבל בגלל שהחישובים לוקחים זמן, צריך לרענן כל בערך 0.6 שנייה כדי שהקצב יהיה קרוב למדוייק לשנייה
@@ -3480,7 +3512,7 @@ def all_calculations():
 
     # רק אם מוגדר על חישוב מתעדכן רציף אז יש לרענן כל שנייה מחדש את הנתונים ע"י קריאות חוזרות לפונקציית כל החישובים
     if choice_time.get() == "עכשיו מתעדכן":
-        ws.after(575, all_calculations)
+        ws.after(1000, all_calculations)
         
 
     
@@ -8981,7 +9013,3 @@ if __name__ == '__main__':
     #---------------------------------------------
     # בין אם יש רישיון ובין אם אין רישיון חייבת להיות לולאה אינסופית על החלון הראשי כך
     ws.mainloop()
-
-
-
-
