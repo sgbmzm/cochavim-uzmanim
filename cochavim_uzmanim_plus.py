@@ -493,7 +493,7 @@ cu_screenheight = 768
 cu_scaling = 1.32 # כנראה המקורי היה 1.3 אבל למעשה בחרתי 1.32 כי המקורי עשה בעיות וזה כנראה פועל היטב במחשבים גדולים
 
 # תאריך גרסת התוכנה הראשית
-cu_version_date = dt.date(2026,2,3)
+cu_version_date = dt.date(2026,2,5)
 
 # פונקצייה שמחזירה שם יחד עם מיקום של קובץ בתיקיית תוכנת כוכבים וזמנים
 '''
@@ -2155,18 +2155,6 @@ def set_date_time(time):
         all_calculations()
 
 
-# פונקצייה לקבלת גובה אופק לפי שיטה הלכתית נוגע לעניין קריאה לחישוב שעות זמניות 
-def gethorizon_Halachic_method():
-    # הגדרת גובה האופק בהתאם לשיטה ההלכתית שנבחרה
-    if Halachic_method.get() in ['גר"א', "GRA"]:
-        gethorizon=-0.833
-    elif Halachic_method.get() in ['גר"א-0', "GRA-0"]:
-        gethorizon=0
-    elif Halachic_method.get() in ['מג"א-16', "MGA-16"]:
-        gethorizon=-16.0
-    elif Halachic_method.get() in ['מג"א-19.75', "MGA-19.75"]:
-        gethorizon=-19.75
-    return gethorizon
 
 
 # פונקצייה להגדרת לזמנים שונים שהמשתמש בוחר בתפריט הבחירה
@@ -2558,6 +2546,8 @@ def halacha_watch():
     zmanim_id = canvas.create_text(160 * scale, 174 * scale, text="", fill="magenta", font=scaled_font("miriam", 10))
 
     
+    
+    
     #פונקציה לעדכון המסך כל שנייה
     def update_canvas():
         
@@ -2573,7 +2563,7 @@ def halacha_watch():
 
         ######################################################################
         
-        
+        #MGA_Today_SR, MGA_Today_SS, MGA_LAST_SS, MGA_NEXT_SR, GRA_Today_SR, GRA_Today_SS, GRA_LAST_SS, GRA_NEXT_SR
 
         # חישוב שעה זמנית מגא וגרא
 
@@ -3362,6 +3352,7 @@ def time_location_timezone():
 
 # משתנים גלובליים חשובים מאוד עבור all_calculations כדי למנוע חישוב כבד של זיחות ושקיעות וכדומה כשאין צורך בחישוב חדש
 Today_SR, Today_SS, LAST_SS, NEXT_SR, LAST_SS_0_833, seconds_equation_of_time, str_equation_of_time = [None] * 7
+Today_SR_MGA, Today_SS_MGA, LAST_SS_MGA, NEXT_SR_MGA = [None] * 4
 last_stamp = None
 
 # פונקציית זו היא הפונקצייה הראשית של התוכנה והיא קוראת לכל הפונקציות האחרות ומפעילה את כל החישובים    
@@ -3383,10 +3374,11 @@ def all_calculations():
     
     # הצהרה על המשתנים הגלובליים
     global Today_SR, Today_SS, LAST_SS, NEXT_SR, LAST_SS_0_833, seconds_equation_of_time, str_equation_of_time
+    global Today_SR_MGA, Today_SS_MGA, LAST_SS_MGA, NEXT_SR_MGA
     global last_stamp
     
     # שמירת חותמת של כל הנתונים החשובים שאם אחד מהם משתנה חייבים לחשב מחדש זריחות ושקיעות
-    stamp = (location.latitude.degrees, location.longitude.degrees, location.elevation.m, time.date(), time.utcoffset(), location_timezone, Halachic_method.get())
+    stamp = (location.latitude.degrees, location.longitude.degrees, location.elevation.m, time.date(), time.utcoffset(), location_timezone, Halachic_method_MGA.get(), Halachic_method_GRA.get())
     
     # בכל מקרה כזה צריך לעדכן חישובים
     need_update = stamp != last_stamp # זה עוזר גם לשנייה הראשונה כי אז last_stamp הוא None וגם לפעמים הבאות שאז הוא לא שווה אם משתנה משהו בתוך החותמת
@@ -3396,65 +3388,109 @@ def all_calculations():
     
     # במקרה שצריך עדכון מחשבים מחדש זריחות ושקיעות וחצות וזה מעדכן את המשתנים הגלובליים שמחוץ לפונקצייה בערכים החדשים
     if need_update:
+        
+        
         print("צריך עדכון")
         print("stamp: ", stamp)
         print("last_stamp: ", last_stamp)
         print("")
+        
+        ########################################################################
         # החלק העליון של התוכנה פועל תמיד, אבל החלק שתלוי בחישובי זריחה ושקיעה לא פועל במקום שאין בו זריחה ושקיעה בכל יום כגון באיזור הקוטב הצפוני
         # לכן צריך לנסות, ואם לא מצליחים לחשב שקיעות אז לא לחשב שעות זמניות ולא לחשב כמה שעות עברו מהשקיעה
         try:
             # קריאה לפונקציית חישוב שעות זמניות על זריחות ושקיעות בגובה המוגדר לפי הגדרת המשתמש בשעון הזמני
-            # תחילה חישוב הזריחות והשקיעות הדרושות: זריחה ושקיעה של היום עבור שעה זמנית ביום, שקיעה קודמת וזריחה הבאה עבור שעה זמנית בלילה
+            # תחילה חישוב הזריחות והשקיעות הדרושות: זריחה ושקיעה של היום עבור שעה זמנית ביום, שקיעה קודמת וזריחה הבאה עבור שעה זמנית בלילה              
+            # תחילה יש לקבל מה האופק שהמשתמש רוצה
+            gethorizon_GRA = Halachic_method_GRA.get()
+            Today_SR,Today_SS,_,_,_,_ = calculate_rising_seting(time,location,location_timezone,horizon=gethorizon_GRA, body="sun",PLUS_MINUS = "NONE")
+            _,LAST_SS,_,_,_,_ = calculate_rising_seting(time,location,location_timezone,horizon=gethorizon_GRA, body="sun",PLUS_MINUS = "MINUS")
+            NEXT_SR,_,_,_,_,_ = calculate_rising_seting(time,location,location_timezone,horizon=gethorizon_GRA, body="sun",PLUS_MINUS = "PLUS")           
+        except IndexError:         
+            Today_SR, Today_SS, LAST_SS, NEXT_SR = [None] * 4
+            
+        #######################################################################    
+        try:
             
             # שיטה לא נכונה, אבל יש שחושבים כך: שעות זמניות מעלות השחר עד צאת הכוכבים של הגאונים. נקטתי לדוגמא מינוס 4 מעלות לצאת הכוכבים
             # במקרה זה צריך לחשב יותר חישובים מהרגיל כי הזריחה והשקיעה הם לא באותו גובה שמש תחת האופק
-            if Halachic_method.get() in ['מג"א 16/4', "MGA 16/4"]:
-                Today_SR,_,_,_,_,_ = calculate_rising_seting(time,location,location_timezone,horizon=-16, body="sun",PLUS_MINUS = "NONE")
-                _,Today_SS,_,_,_,_ = calculate_rising_seting(time,location,location_timezone,horizon=-4, body="sun",PLUS_MINUS = "NONE")
-                _,LAST_SS,_,_,_,_ = calculate_rising_seting(time,location,location_timezone,horizon=-4, body="sun",PLUS_MINUS = "MINUS")
-                NEXT_SR,_,_,_,_,_ = calculate_rising_seting(time,location,location_timezone,horizon=-16, body="sun",PLUS_MINUS = "PLUS")
+            if Halachic_method_MGA.get() > 10:
+                Today_SR_MGA,_,_,_,_,_ = calculate_rising_seting(time,location,location_timezone,horizon=-16, body="sun",PLUS_MINUS = "NONE")
+                _,Today_SS_MGA,_,_,_,_ = calculate_rising_seting(time,location,location_timezone,horizon=-4, body="sun",PLUS_MINUS = "NONE")
+                _,LAST_SS_MGA,_,_,_,_ = calculate_rising_seting(time,location,location_timezone,horizon=-4, body="sun",PLUS_MINUS = "MINUS")
+                NEXT_SR_MGA,_,_,_,_,_ = calculate_rising_seting(time,location,location_timezone,horizon=-16, body="sun",PLUS_MINUS = "PLUS")
             
             # בכל מקרה אחר החישוב הוא לזריחה ולשקיעה באותו גובה תחת האופק
             else:
                 # תחילה יש לקבל מה האופק שהמשתמש רוצה
-                gethorizon = gethorizon_Halachic_method()
-                Today_SR,Today_SS,_,_,_,_ = calculate_rising_seting(time,location,location_timezone,horizon=gethorizon, body="sun",PLUS_MINUS = "NONE")
-                _,LAST_SS,_,_,_,_ = calculate_rising_seting(time,location,location_timezone,horizon=gethorizon, body="sun",PLUS_MINUS = "MINUS")
-                NEXT_SR,_,_,_,_,_ = calculate_rising_seting(time,location,location_timezone,horizon=gethorizon, body="sun",PLUS_MINUS = "PLUS")
+                gethorizon_MGA = Halachic_method_MGA.get()
+                Today_SR_MGA,Today_SS_MGA,_,_,_,_ = calculate_rising_seting(time,location,location_timezone,horizon=gethorizon_MGA, body="sun",PLUS_MINUS = "NONE")
+                _,LAST_SS_MGA,_,_,_,_ = calculate_rising_seting(time,location,location_timezone,horizon=gethorizon_MGA, body="sun",PLUS_MINUS = "MINUS")
+                NEXT_SR_MGA,_,_,_,_,_ = calculate_rising_seting(time,location,location_timezone,horizon=gethorizon_MGA, body="sun",PLUS_MINUS = "PLUS")
 
-        
+        except IndexError:           
+            Today_SR_MGA, Today_SS_MGA, LAST_SS_MGA, NEXT_SR_MGA = [None] * 4
             
+        ##############################################################################
+ 
+        try: 
             # חישוב מתי הייתה השקיעה האחרונה של מינוס 0.833 באמצעות פונקציית חישוב זריחות ושקיעות
-            _,LAST_SS_0_833,_,_,_,_ = calculate_rising_seting(time,location,location_timezone,horizon=-0.833, body="sun",PLUS_MINUS = "MINUS")
+            _,LAST_SS_0_833,_,_,_,_ = calculate_rising_seting(time,location,location_timezone,horizon=-0.833, body="sun",PLUS_MINUS = "MINUS")          
+        except IndexError:            
+            LAST_SS_0_833 = None
             
+        #################################################################################
             
+        try:    
             # חישוב משוואת הזמן והגדרתה למשבצת המתאימה וחישוב מספר השניות שיש במשוואת הזמן 
             _, _, seconds_equation_of_time, str_equation_of_time  = calculate_transits_and_equation_of_time(time,location,location_timezone)
-          
-            
         except IndexError:
+            seconds_equation_of_time, str_equation_of_time = [None] * 2
             
-            Today_SR, Today_SS, LAST_SS, NEXT_SR, LAST_SS_0_833, seconds_equation_of_time, str_equation_of_time = [None] * 7
-             
-        
+        ###################################################################################
+            
+              
         
     if Today_SR and Today_SS and LAST_SS and NEXT_SR:
         # חישוב השעות הזמניות לפי הזריחות והשקיעות שהוגדרו לעיל
         day_or_night,Sunrise_determines,Sunset_determines,temporal_hour,minutes_in_temporal_hour,minutes_in_day_or_night=calculate_temporal_hour(time,Today_SR,Today_SS,LAST_SS,NEXT_SR)
         # הדפסות עבור שעון שעה זמנית
-        print_day_or_night.set(day_or_night)
-        print_Sunrise_determines.set(f'{Sunrise_determines:%H:%M:%S}')
-        print_Sunset_determines.set(f'{Sunset_determines:%H:%M:%S}')
-        print_temporal_hour.set(temporal_hour)
-        print_minutes_in_temporal_hour.set(minutes_in_temporal_hour)
-        print_minutes_in_day_or_night.set(minutes_in_day_or_night)
+        print_day_or_night_GRA.set(day_or_night)
+        print_Sunrise_determines_GRA.set(f'{Sunrise_determines:%H:%M:%S}')
+        print_Sunset_determines_GRA.set(f'{Sunset_determines:%H:%M:%S}')
+        print_temporal_hour_GRA.set(temporal_hour)
+        print_minutes_in_temporal_hour_GRA.set(minutes_in_temporal_hour+" שעה")
+        #print_minutes_in_day_or_night_GRA.set(minutes_in_day_or_night)
     else:
-        print_temporal_hour.set("--")
-        print_Sunrise_determines.set("שגיאה")
-        print_Sunset_determines.set("שגיאה")
-        print_minutes_in_temporal_hour.set("--")
-        print_minutes_in_day_or_night.set("--")
-        print_day_or_night.set("--")
+        print_day_or_night_GRA.set("--")
+        print_temporal_hour_GRA.set("--")
+        print_Sunrise_determines_GRA.set("שגיאה")
+        print_Sunset_determines_GRA.set("שגיאה")
+        print_minutes_in_temporal_hour_GRA.set("--")
+        #print_minutes_in_day_or_night_GRA.set("--")
+        
+    ####################################################################
+        
+        
+    if Today_SR_MGA and Today_SS_MGA and LAST_SS_MGA and NEXT_SR_MGA:
+        # חישוב השעות הזמניות לפי הזריחות והשקיעות שהוגדרו לעיל
+        day_or_night_MGA,Sunrise_determines_MGA,Sunset_determines_MGA,temporal_hour_MGA,minutes_in_temporal_hour_MGA,minutes_in_day_or_night_MGA=calculate_temporal_hour(time,Today_SR_MGA,Today_SS_MGA,LAST_SS_MGA,NEXT_SR_MGA)
+        # הדפסות עבור שעון שעה זמנית
+        print_day_or_night_MGA.set(day_or_night_MGA)
+        print_Sunrise_determines_MGA.set(f'{Sunrise_determines_MGA:%H:%M:%S}')
+        print_Sunset_determines_MGA.set(f'{Sunset_determines_MGA:%H:%M:%S}')
+        print_temporal_hour_MGA.set(temporal_hour_MGA)
+        print_minutes_in_temporal_hour_MGA.set(minutes_in_temporal_hour_MGA+" שעה")
+        #print_minutes_in_day_or_night_MGA.set(minutes_in_day_or_night)
+    else:
+        print_day_or_night_MGA.set("--")
+        print_temporal_hour_MGA.set("--")
+        print_Sunrise_determines_MGA.set("שגיאה")
+        print_Sunset_determines_MGA.set("שגיאה")
+        print_minutes_in_temporal_hour_MGA.set("--")
+        #print_minutes_in_day_or_night_MGA.set("--")
+        
+    ####################################################################
             
     if LAST_SS_0_833:
         # חישוב כמה שניות עברו מהשקיעה האחרונה 0.833- שהייתה ועד עכשיו
@@ -3464,7 +3500,7 @@ def all_calculations():
     else:
         print_hours_from_last_sunset.set("שגיאה")
 
-    
+    ####################################################################
     
     # ניסיון לחישוב משוואת הזמן והדפסתה
     if seconds_equation_of_time and str_equation_of_time:  
@@ -3497,8 +3533,7 @@ def all_calculations():
         print_LSoT_time.set("שגיאה")
         print_equation_of_time.set("שגיאה")
 
-
-    ##########################
+    ######################################################
     
     
        
@@ -8809,48 +8844,195 @@ if __name__ == '__main__':
 
     #ריווח
     Label(ws, text= "———————————————————————————————————————————————————————").pack()
-
-    # אזור נפרד לשעון שעה זמנית
-    temporal_clock = cu_PanedWindow(ws)
     
-    # שעה-----------------------
-
-    print_temporal_hour = StringVar(ws)
-
-    Entry(temporal_clock,textvariable=print_temporal_hour,width=9,font="narkisim 25 bold", justify="center",relief="flat",disabledbackground= "gray87").grid(column=5, row=1)
-    Label(temporal_clock, text="שעון שעה זמנית" if is_heb_locale else "Temporarl hour",font= "david 14 bold").grid(column=5, row=2)
-
-    print_day_or_night = StringVar(ws)
-    Entry(temporal_clock,textvariable=print_day_or_night,width=4 if is_heb_locale else 5,font="narkisim 17",justify="center").grid(column=4, row=1)
-    Label(temporal_clock, text=" יום/לילה " if is_heb_locale else "  day/night  ").grid(column=4, row=2)
-
-    print_Sunrise_determines = StringVar(ws)
-    print_Sunset_determines = StringVar(ws)
-    print_minutes_in_temporal_hour = StringVar(ws)
-    print_minutes_in_day_or_night = StringVar(ws)
-    Label(temporal_clock, text="                  " if is_heb_locale else "         ").grid(column=10, row=2)
-    Entry(temporal_clock,textvariable=print_Sunrise_determines,width=8,font="narkisim 17",justify="center").grid(column=9, row=1)
-    Label(temporal_clock, text="זריחה קובעת" if is_heb_locale else "Sunrise determines").grid(column=9, row=2)
-    Label(temporal_clock, text=" ").grid(column=8, row=2)
-    Entry(temporal_clock,textvariable=print_Sunset_determines,width=8,font="narkisim 17",justify="center").grid(column=7, row=1)
-    Label(temporal_clock, text="שקיעה קובעת" if is_heb_locale else "Sunset determines").grid(column=7, row=2)
-    Entry(temporal_clock,textvariable=print_minutes_in_temporal_hour,width=6,font="narkisim 17",justify="center").grid(column=1, row=1)
-    Label(temporal_clock, text=" דקות לשעה " if is_heb_locale else "minutes in hour").grid(column=1, row=2)
-    #Entry(temporal_clock,textvariable=print_minutes_in_day_or_night,width=5,font="narkisim 17",justify="center").grid(column=1, row=1)
-    #Label(temporal_clock, text="דקות ליום").grid(column=1, row=2)
-
-    Halachic_method = StringVar(ws)
-    Halachic_method_value = ['גר"א','גר"א-0','מג"א-16','מג"א-19.75','מג"א 16/4'] if is_heb_locale else ['GRA','GRA-0','MGA-16','MGA-19.75','MGA 16/4']
-    Halachic_method_cb = ttk.Combobox(temporal_clock, textvariable=Halachic_method, width=9 , state='readonly',values=[*Halachic_method_value],font="narkisim 17",justify='center')
-    Halachic_method_cb.grid(column=0, row=1)
-    Halachic_method.set(Halachic_method_value[0])
-
-    Label(temporal_clock, text="   שיטה הלכתית   " if is_heb_locale else "Halachic method").grid(column=0, row=2)
-
-    # ריווח
-    Label(temporal_clock, text= "").grid(column=6, row=1)
-
+    
+    
+    
+    # ===== temporal_clock =====
+    temporal_clock = ttk.Frame(ws)
     temporal_clock.pack()
+
+    # ===== main frame =====
+    main_frame = ttk.Frame(temporal_clock)
+    main_frame.pack()
+
+    # 🔑 זה החלק הקריטי
+    main_frame.columnconfigure(0, weight=1)  # שמאל
+    main_frame.columnconfigure(1, weight=0)  # קו
+    main_frame.columnconfigure(2, weight=1)  # ימין
+    main_frame.rowconfigure(0, weight=1)
+
+    # ===== צד שמאל =====
+    left_frame = ttk.Frame(main_frame)
+    left_frame.grid(row=0, column=0, sticky="nsew", padx=20)
+
+    left_frame.columnconfigure(0, weight=1)
+    left_frame.columnconfigure(1, weight=1)
+    
+    # ===== LEFT TEMPORAL CLOCK =====
+    left_tc = ttk.Frame(left_frame)
+    left_tc.pack(expand=True)
+
+    left_tc.columnconfigure(0, weight=1)
+    left_tc.columnconfigure(1, weight=2)
+    left_tc.columnconfigure(2, weight=1)
+
+    # משתנים – שמאל
+    print_temporal_hour_MGA = StringVar(ws)
+    print_day_or_night_MGA = StringVar(ws)
+    print_Sunrise_determines_MGA = StringVar(ws)
+    print_Sunset_determines_MGA = StringVar(ws)
+    print_minutes_in_temporal_hour_MGA = StringVar(ws)
+    Halachic_method_MGA = StringVar(ws)
+
+    # מרכז – שעון
+    Entry(
+        left_tc,
+        textvariable=print_temporal_hour_MGA,
+        width=9,
+        font="narkisim 25 bold",
+        justify="center",
+        relief="flat",
+        disabledbackground="gray87"
+    ).grid(row=0, column=1)
+
+    Label(
+        left_tc,
+        text="מג''א - שעה זמנית" if is_heb_locale else "MGA - Temporal Hour",
+        font="david 14 bold"
+    ).grid(row=1, column=1)
+
+    # שמאל
+    Entry(left_tc, textvariable=print_minutes_in_temporal_hour_MGA,width=10, font="narkisim 14", justify="center").grid(row=2, column=2)
+
+    #Label(left_tc, text="דקות לשעה" if is_heb_locale else "Minutes / hour").grid(row=3, column=2)
+
+    Entry(left_tc, textvariable=print_day_or_night_MGA,width=5, font="narkisim 14", justify="center").grid(row=2, column=0)
+
+    #Label(left_tc, text="יום / לילה" if is_heb_locale else "Day / Night").grid(row=3, column=0)
+
+    # ימין
+    Entry(left_tc, textvariable=print_Sunrise_determines_MGA,width=8, font="narkisim 14", justify="center").grid(row=0, column=2)
+
+    Label(left_tc, text="זריחה קובעת" if is_heb_locale else "Sunrise determines").grid(row=1, column=2)
+
+    Entry(left_tc, textvariable=print_Sunset_determines_MGA,width=8, font="narkisim 14", justify="center").grid(row=0, column=0)
+
+    Label(left_tc, text="שקיעה קובעת" if is_heb_locale else "Sunset determines").grid(row=1, column=0)
+
+    # רשימת ערכים בלבד
+    values_MGA = [222, -19.75, -16]  # הערכים שהכפתורים יתנו
+
+    # משתנה מספרי
+    Halachic_method_MGA = DoubleVar(ws)
+    Halachic_method_MGA.set(values_MGA[2])  # ברירת מחדל
+
+    # Frame פנימי לרדיו
+    # Frame פנימי לרדיו כדי למרכז אותו
+    left_radio_frame = ttk.Frame(left_tc)
+    left_radio_frame.grid(row=2, column=1, pady=10)  # שורה 2, עמודה 1
+
+
+    # יצירת כפתורי רדיו עם הערכים בלבד
+    for i, value in enumerate(values_MGA):
+        ttk.Radiobutton(
+            left_radio_frame,
+            text=str(value) if value < 10 else "-16/-4",        # מציג רק את הערך עצמו
+            variable=Halachic_method_MGA,
+            value=value,
+            command=all_calculations,
+        ).grid(row=0, column=i, padx=3)
+
+
+
+    
+    # ===== קו מפריד (באמת באמצע) =====
+    ttk.Separator(main_frame, orient="vertical").grid(row=0, column=1, sticky="ns")
+
+    # ===== צד ימין =====
+    right_frame = ttk.Frame(main_frame)
+    right_frame.grid(row=0, column=2, sticky="nsew", padx=20)
+
+    right_frame.columnconfigure(0, weight=1)
+    right_frame.columnconfigure(1, weight=1)
+    
+    
+    
+    # ===== RIGHT TEMPORAL CLOCK =====
+    right_tc = ttk.Frame(right_frame)
+    right_tc.pack(expand=True)
+
+    right_tc.columnconfigure(0, weight=1)
+    right_tc.columnconfigure(1, weight=2)
+    right_tc.columnconfigure(2, weight=1)
+
+    # משתנים – ימין
+    print_temporal_hour_GRA = StringVar(ws)
+    print_day_or_night_GRA = StringVar(ws)
+    print_Sunrise_determines_GRA = StringVar(ws)
+    print_Sunset_determines_GRA = StringVar(ws)
+    print_minutes_in_temporal_hour_GRA = StringVar(ws)
+    
+
+    # מרכז – שעון
+    Entry(
+        right_tc,
+        textvariable=print_temporal_hour_GRA,
+        width=9,
+        font="narkisim 25 bold",
+        justify="center",
+        relief="flat",
+        disabledbackground="gray87"
+    ).grid(row=0, column=1)
+
+    Label(
+        right_tc,
+        text="גר''א - שעה זמנית" if is_heb_locale else "GRA - Temporal Hour",
+        font="david 14 bold"
+    ).grid(row=1, column=1)
+
+    # שמאל
+    Entry(right_tc, textvariable=print_minutes_in_temporal_hour_GRA, width=10, font="narkisim 14", justify="center").grid(row=2, column=2)
+
+    #Label(right_tc, text="דקות לשעה" if is_heb_locale else "Minutes / hour").grid(row=3, column=2)
+
+    Entry(right_tc, textvariable=print_day_or_night_GRA, width=5, font="narkisim 14", justify="center").grid(row=2, column=0)
+
+    #Label(right_tc, text="יום / לילה" if is_heb_locale else "Day / Night").grid(row=3, column=0)
+
+    # ימין
+    Entry(right_tc, textvariable=print_Sunrise_determines_GRA, width=8, font="narkisim 14", justify="center").grid(row=0, column=2)
+
+    Label(right_tc, text="זריחה קובעת" if is_heb_locale else "Sunrise determines").grid(row=1, column=2)
+
+    Entry(right_tc, textvariable=print_Sunset_determines_GRA, width=8, font="narkisim 14", justify="center").grid(row=0, column=0)
+
+    Label(right_tc, text="שקיעה קובעת" if is_heb_locale else "Sunset determines").grid(row=1, column=0)
+
+      
+    # רשימת ערכים בלבד
+    values_GRA = [-0.833, 0]  # הערכים שהכפתורים יתנו
+
+    # משתנה מספרי
+    Halachic_method_GRA = DoubleVar(ws)
+    Halachic_method_GRA.set(values_GRA[0])  # ברירת מחדל
+
+    # Frame פנימי לרדיו
+    # Frame פנימי לרדיו כדי למרכז אותו
+    right_radio_frame = ttk.Frame(right_tc)
+    right_radio_frame.grid(row=2, column=1, pady=10)  # שורה 2, עמודה 1
+
+
+    # יצירת כפתורי רדיו עם הערכים בלבד
+    for i, value in enumerate(values_GRA):
+        ttk.Radiobutton(
+            right_radio_frame,
+            text=str(value),        # מציג רק את הערך עצמו
+            variable=Halachic_method_GRA,
+            value=value,
+            command=all_calculations
+        ).grid(row=0, column=i, padx=25)
+
 
 
     #ריווח
