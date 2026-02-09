@@ -381,14 +381,13 @@ import jdcal
 import csv
 
 import locale # מידע על שפת הווינדוס וקידוד השפות # אמור לעבוד גם בלינוקס. לבדוק
-
+    
 # יבוא ספריות שקיימות רק בווינדוס
 if is_windows:
     from win32com.client import Dispatch # עבודה מול מערכת הפעלה ווינדוס כגון יצירת קיצורי דרך
-    
-if is_windows: # אמור לעבוד גם בלינוקס. לבדוק 
-    # פתיחת דפדפן אינטרנט
-    import webbrowser
+
+# פתיחת דפדפן אינטרנט
+import webbrowser
 
 # הודעות של טקינטר
 from tkinter import messagebox as tkMessageBox
@@ -435,47 +434,80 @@ LTR = "\u200E"
 # תו יוניקוד להציד מימן לשמאל. עדיף פותח וסוגר
 RTL = "\u200F"
 
+# מחזיר טרו אם מערכת ההפעלה של המשתמש היא בעברית
+is_system_hebrew = (locale.getlocale()[0] or '').lower().startswith('he')
+
+
 # פונקצייה מאוד חשובה להצגת עברית בלינוקס
 def reverse(text):
     return text if is_windows else text[::-1]
 
 
-def reverse(text):
-    
-    BRACKETS_MAP = str.maketrans({
-    '(': ')',
-    ')': '(',
-    '[': ']',
-    ']': '[',
-    '{': '}',
-    '}': '{',
-    '<': '>',
-    '>': '<'
-})
+import re
 
-    
-    
-    if is_windows:
+def reverse(text, for_title = False):
+    BRACKETS_MAP = str.maketrans({
+        '(': ')', ')': '(', 
+        '[': ']', ']': '[', 
+        '{': '}', '}': '{', 
+        '<': '>', '>': '<'
+    })
+
+    if is_windows or (for_title and is_system_hebrew):
         return text
 
-    # טיפול ברשימות
     if isinstance(text, (list, tuple)):
         return [reverse(item) for item in text]
 
     if not isinstance(text, str):
         return text
 
-    # מחרוזת ללא \n
-    if "\n" not in text:
-        return text[::-1].translate(BRACKETS_MAP)
-
-    # מחרוזת רב־שורתית
+    # מספרים שלמים/עשרוניים, מילים באנגלית עם נקודות או קווים
+    pattern = re.compile(r'\d+(\.\d+)?|[A-Za-z0-9]+(?:[.\-][A-Za-z0-9]+)*')
     lines = text.splitlines(keepends=True)
-    return "".join(
-        (line[:-1][::-1].translate(BRACKETS_MAP) + "\n") if line.endswith("\n")
-        else line[::-1].translate(BRACKETS_MAP)
-        for line in lines
-    )
+    result_lines = []
+
+    for line in lines:
+        has_newline = line.endswith("\n")
+        line_content = line.rstrip("\n")
+        segments = []
+        idx = 0
+
+        while idx < len(line_content):
+            match = pattern.match(line_content, idx)
+            if match:
+                segments.append(match.group())
+                idx = match.end()
+            else:
+                char = line_content[idx]
+                if char == " ":
+                    segments.append(char)
+                else:
+                    segments.append(char.translate(BRACKETS_MAP))
+                idx += 1
+
+        # הפוך רק רצפים של עברית/סימנים
+        new_segments = []
+        buffer = ""
+        for seg in segments:
+            if re.fullmatch(r'[A-Za-z0-9.\- ]+', seg):
+                if buffer:
+                    new_segments.append(buffer[::-1])
+                    buffer = ""
+                new_segments.append(seg)
+            else:
+                buffer += seg
+        if buffer:
+            new_segments.append(buffer[::-1])
+
+        # הפוך את סדר הרצפים של rtl בלבד
+        new_line = "".join(reversed(new_segments))
+        if has_newline:
+            new_line += "\n"
+        result_lines.append(new_line)
+
+    return "".join(result_lines)
+
 
 
 
@@ -1102,9 +1134,9 @@ def eclipse_calculations(time,location,location_timezone,body="sun",PLUS_MINUS="
         Waiting_eclipse.configure(bg=cu_color)
         # מיקום חלון ההמתנה מעל החלון הראשי
         Waiting_eclipse.wm_transient(ws)
-        Waiting_eclipse.title('נא להמתין לחישוב הנתונים' if is_heb_locale else "Please wait for data calculations")
+        Waiting_eclipse.title(reverse('נא להמתין לחישוב הנתונים', for_title = True) if is_heb_locale else "Please wait for data calculations")
         
-        msg = "המתינו לטעינת תאריך ושעת הליקוי בשעון העליון\n\nשימו לב: תכונה זו איננה מושלמת\nוייתכן שעלולים להתפספס ליקויים מסויימים"
+        msg = reverse("המתינו לטעינת תאריך ושעת הליקוי בשעון העליון\n\nשימו לב: תכונה זו איננה מושלמת\nוייתכן שעלולים להתפספס ליקויים מסויימים")
         en_msg = "Wait for the time of eclipse to be loaded in the upper clock\n\nPlease note: this feature is not perfect\nand it is possible that certain eclipses may be missed"
         Label(Waiting_eclipse, text=msg if is_heb_locale else en_msg, padx=20, pady=20,font="david 20 bold" if is_heb_locale else "david 16 bold",justify="center").pack()
 
@@ -1587,8 +1619,8 @@ def get_defaults():
     
 
     # הגדרת המיקום הראשון של שני קבצי האפאמאריס בתיקיית כוכבים וזמנים
-    eph_440_path_1 = rf"{cu_dir_path}\de440.bsp" 
-    eph_441s_path_1 = rf"{cu_dir_path}\de441s.bsp"
+    eph_440_path_1 = os.path.join(cu_dir_path, "de440.bsp")
+    eph_441s_path_1 = os.path.join(cu_dir_path, "de441s.bsp")
     
     # הגדרת המיקום השני של שני קבצי האפאמאריס בתיקייה שבה התוכנה פועלת כרגע במיקום המוחלט הבא
     eph_440_path_2 = resource_path("de440.bsp")
@@ -1611,7 +1643,7 @@ def get_defaults():
     input_years_range = [f"{i:02.0f}" for i in range(1,3000)]
     
     # הגדרת הכתובת עבור קובץ המיקומים הערוך שהוא קובץ המיקומים העדכני ביותר 
-    locations_edited_path = rf"{cu_dir_path}\locations_edited.csv"
+    locations_edited_path = os.path.join(cu_dir_path, "locations_edited.csv")
     
     #######################
     '''
@@ -1651,13 +1683,13 @@ def edit_locations_file(location = "NONE"):
     # כאשר נעשה שימוש בקובץ המיקומים המקורי אין שום משמעות לפונקצייה זו ולכן מדלגים על כולה
     if which_locations_file == "מקורי":
         if is_heb_locale:
-            tkMessageBox.showinfo("שגיאה", "לא ניתן לערוך את קובץ המיקומים המקורי. לחץ על 'איפוס קובץ המיקומים' ונסה שוב. אם השגיאה חוזרת לאחר האיפוס - אין אפשרות במחשב זה לערוך שינויים במיקומים")
+            tkMessageBox.showinfo(reverse("שגיאה"), reverse("לא ניתן לערוך את קובץ המיקומים המקורי. לחץ על 'איפוס קובץ המיקומים' ונסה שוב. אם השגיאה חוזרת לאחר האיפוס - אין אפשרות במחשב זה לערוך שינויים במיקומים"))
         else:
             tkMessageBox.showinfo("Error", "It is not possible to edit the original location file. Click on 'Reset the location file' and try again. If the error returns after the reset - it is not possible to edit locations on this computer")
         pass
     
     # רק הוספת מיקום וכן מיון המיקומים רלוונטיים גם כאשר המיקום מוגדר על בחירה ידנית. כל שאר האופציות לא אפשריות במצב זה
-    elif city.get() in ["בחירה-ידנית", "Choose manually"] and choice_option.get() not in ["ADD", "SORT"]:
+    elif city.get() in [reverse("בחירה-ידנית"), "Choose manually"] and choice_option.get() not in ["ADD", "SORT"]:
         pass
     
     # בכל מקרה אחר הפונקצייה פועלת כרגיל
@@ -1665,6 +1697,8 @@ def edit_locations_file(location = "NONE"):
     
         # קבלת הגדרות ברירות מחדל עבור התוכנה באמצעות פונקצייה
         _, _, _, _, _, locations_path,locations_edited_path,_, cu_dir_path,_ = get_defaults()
+        
+        current_city = reverse(city.get()) # חייבים לעשות ככה כדי לעשות רוורס בחזרה בלינוקס 
         
         # טעינת קובץ המיקומים מתוך המיקום המוחלט
         with open(locations_path, 'r', encoding=cu_encod) as myFile:
@@ -1680,7 +1714,7 @@ def edit_locations_file(location = "NONE"):
             
             # שאילה האם המשתמש בטוח שברצונו לשנות את מיקום ברירת המחדל של התוכנה
             if is_heb_locale:
-                msg_box = tkinter.messagebox.askquestion('אישור מחיקת מיקום מקובץ המיקומים','\nהאם אתה בטוח שברצונך למחוק את המיקום הנוכחי מקובץ המיקומים?\nאם כן, התוכנה תיסגר ויש להפעילה מחדש',icon='warning', default="no")
+                msg_box = tkinter.messagebox.askquestion(reverse('אישור מחיקת מיקום מקובץ המיקומים'),reverse('\nהאם אתה בטוח שברצונך למחוק את המיקום הנוכחי מקובץ המיקומים?\nאם כן, התוכנה תיסגר ויש להפעילה מחדש'),icon='warning', default="no")
             else:
                 msg_box = tkinter.messagebox.askquestion('Confirmation to delete a location from the location file','\nAre you sure you want to delete the current location from the location file?\nIf so, the software will close and must be restarted',icon='warning', default="no")
             # אם המשתמש ענה שהוא רוצה למחוק מיקום
@@ -1688,7 +1722,7 @@ def edit_locations_file(location = "NONE"):
                 # חיפוש בכל מיקום ומיקום שבקובץ הנתונים בלי לחשב את השורה הראשונה שהיא רק המפתח מה יש בכל עמודה
                 for i in range(len(locations_data))[1:]:
                     location_name = locations_data[i][0] if is_heb_locale else locations_data[i][-1] # תמיד השם באנגלית נמצא במיקום האחרון
-                    if location_name == city.get():
+                    if location_name == current_city:
                         locations_data[i] = ""
                         #del(locations_data[i])
 
@@ -1697,7 +1731,7 @@ def edit_locations_file(location = "NONE"):
         # זהו מיקום ברירת המחדל שאנו רוצים והוא יתווסף למיקום הראשון ברשימת המיקומים ויימחק ממיקומו הקודם
         elif choice_option.get() == "DEFAULT":
             if is_heb_locale:
-                msg_box = tkinter.messagebox.askquestion('אישור הגדרת מיקום כברירת מחדל','\nהאם אתה בטוח שברצונך להגדיר את המיקום הנוכחי כברירת מחדל?\nאם כן, התוכנה תיסגר ויש להפעילה מחדש',icon='warning',default="no")
+                msg_box = tkinter.messagebox.askquestion(reverse('אישור הגדרת מיקום כברירת מחדל'),reverse('\nהאם אתה בטוח שברצונך להגדיר את המיקום הנוכחי כברירת מחדל?\nאם כן, התוכנה תיסגר ויש להפעילה מחדש'),icon='warning',default="no")
             else:
                 msg_box = tkinter.messagebox.askquestion('Confirm setting default location','\nAre you sure you want to set the current location as default?\nIf so, the software will close and must be restarted',icon='warning',default="no")
             # אם המשתמש ענה שהוא רוצה להגדיר את המקום כברירת מחדל
@@ -1706,7 +1740,7 @@ def edit_locations_file(location = "NONE"):
                 for i in range(len(locations_data))[1:]:
                     location_name = locations_data[i][0] if is_heb_locale else locations_data[i][-1] # תמיד השם באנגלית נמצא במיקום האחרון
                     first_row_location_name = locations_data[1][0] if is_heb_locale else locations_data[1][-1] # תמיד השם באנגלית נמצא במיקום האחרון
-                    if location_name == city.get() and first_row_location_name != city.get():
+                    if location_name == current_city and first_row_location_name != current_city:
                         locations_data.insert(1,locations_data[i])
                         del(locations_data[i+1])
                         #locations_data[1] = locations_data[i] # לא בשימוש כי יש פתרון טוב יותר  
@@ -1717,7 +1751,7 @@ def edit_locations_file(location = "NONE"):
         elif choice_option.get() == "ADD":
             # שאילה האם המשתמש בטוח שברצונו להוסיף מיקום חדש לרשימת המיקומים
             if is_heb_locale:
-                msg_box = tkinter.messagebox.askquestion('אישור הוספת מיקום לקובץ המיקומים','\nהאם אתה בטוח שברצונך להוסיף את המיקום החדש לרשימת המיקומים?\nאם כן, התוכנה תיסגר ויש להפעילה מחדש',icon='warning',default="no")
+                msg_box = tkinter.messagebox.askquestion(reverse('אישור הוספת מיקום לקובץ המיקומים'),reverse('\nהאם אתה בטוח שברצונך להוסיף את המיקום החדש לרשימת המיקומים?\nאם כן, התוכנה תיסגר ויש להפעילה מחדש'),icon='warning',default="no")
             else:
                 msg_box = tkinter.messagebox.askquestion('Confirmation of adding a location to the location file','\nAre you sure you want to add the new location to the list of locations?\nIf so, the software will close and must be restarted',icon='warning',default="no ")
             # אם המשתמש ענה שהוא רוצה להוסיף מיקום
@@ -1728,7 +1762,7 @@ def edit_locations_file(location = "NONE"):
         # מיון רשימת המיקומים לפי א-ב        
         elif choice_option.get() == "SORT":
             if is_heb_locale:        
-                msg_box = tkinter.messagebox.askquestion('אישור מיון קובץ המיקומים לפי א-ב','\nהאם אתה בטוח שברצונך למיין את קובץ המיקומים לפי א-ב?\nאם כן, התוכנה תיסגר ויש להפעילה מחדש\nבהפעלה הבאה תוכל להגדיר מחדש מיקום ברירת מחדל',icon='warning',default="no")
+                msg_box = tkinter.messagebox.askquestion(reverse('אישור מיון קובץ המיקומים לפי א-ב'),reverse('\nהאם אתה בטוח שברצונך למיין את קובץ המיקומים לפי א-ב?\nאם כן, התוכנה תיסגר ויש להפעילה מחדש\nבהפעלה הבאה תוכל להגדיר מחדש מיקום ברירת מחדל'),icon='warning',default="no")
             else:
                 msg_box = tkinter.messagebox.askquestion('Confirmation of sorting the location file by A-B-C','\nAre you sure you want to sort the location file by A-B?\nIf so, the software will close and have to be restarted\nOn the next run you can redefine a location default',icon='warning',default="no")
             # אם המשתמש ענה שהוא רוצה למיין
@@ -1761,7 +1795,7 @@ def start_cu_dir_path():
     if os.path.exists(cu_dir_path):
         # שאילה האם המשתמש בטוח שברצונו לפתוח את קובץ המיקומים הערוך
         if is_heb_locale:
-            msg_box = tkinter.messagebox.askquestion('פתיחת תיקיית כוכבים וזמנים','\nהאם ברצונך לפתוח את תיקיית כוכבים וזמנים?\nאם כן, יש להיזהר לא לפגוע בקבצים שבה',icon='warning', default="no")
+            msg_box = tkinter.messagebox.askquestion(reverse('פתיחת תיקיית כוכבים וזמנים'),reverse('\nהאם ברצונך לפתוח את תיקיית כוכבים וזמנים?\nאם כן, יש להיזהר לא לפגוע בקבצים שבה'),icon='warning', default="no")
         else:
             msg_box = tkinter.messagebox.askquestion('Opening the Stars and Times folder','\nDo you want to open the Stars and Times folder?\nIf so, be careful not to damage the files in it',icon='warning', default="no")
         if msg_box == 'yes':
@@ -1795,7 +1829,7 @@ def is_cu_software_update(manual=True):
         # אם התוכנה אינה עדכנית יש להוציא הודעה
         if not is_apdate:
             if is_heb_locale:
-                tkMessageBox.showinfo("בדיקת גרסה עדכנית לתוכנת כוכבים וזמנים", f"הגרסה שברשותך אינה עדכנית\nתאריך הגרסה שברשותך:  {cu_version_date:%d/%m/%Y}\nתאריך הגרסה העדכנית באתר כוכבים וזמנים:  {date_object:%d/%m/%Y}\nהאתר ייפתח כעת בדפדפן כדי שתוכלו להוריד גרסה חדשה")
+                tkMessageBox.showinfo(reverse("בדיקת גרסה עדכנית לתוכנת כוכבים וזמנים"), reverse(f"הגרסה שברשותך אינה עדכנית\nתאריך הגרסה שברשותך:  {cu_version_date:%d/%m/%Y}\nתאריך הגרסה העדכנית באתר כוכבים וזמנים:  {date_object:%d/%m/%Y}\nהאתר ייפתח כעת בדפדפן כדי שתוכלו להוריד גרסה חדשה"))
             else:
                 tkMessageBox.showinfo("Checking the latest version of the cochavim uzmanim software", f"The version you have is not up to date\nThe date of the version you have: {cu_version_date:%d/%m/%Y}\nThe date of the latest version on the cochavim uzmanim website: {date_object:%d/ %m/%Y}\nThe site will now open in the browser so you can download a new version")
             # פתיחת אתר כוכבים וזמנים
@@ -1804,7 +1838,7 @@ def is_cu_software_update(manual=True):
         # אם התוכנה עדכנית ומדובר בבדיקה ידנית יש להוציא הודעה
         elif manual and is_apdate:
             if is_heb_locale:
-                tkMessageBox.showinfo("בדיקת גרסה עדכנית לתוכנת כוכבים וזמנים", f"הגרסה שברשותך עדכנית")
+                tkMessageBox.showinfo(reverse("בדיקת גרסה עדכנית לתוכנת כוכבים וזמנים"), reverse(f"הגרסה שברשותך עדכנית"))
             else:
                 tkMessageBox.showinfo("Checking the latest version of the cochavim uzmanim software", f"The version you have is up to date")
                             
@@ -1812,7 +1846,7 @@ def is_cu_software_update(manual=True):
     except Exception as e:
         if manual:
             if is_heb_locale:
-                tkMessageBox.showerror("בדיקת גרסה עדכנית לתוכנת כוכבים וזמנים", f"לא ניתן לבדוק האם התוכנה עדכנית\nראו פרטים להלן\n\n{str(e)}")
+                tkMessageBox.showerror(reverse("בדיקת גרסה עדכנית לתוכנת כוכבים וזמנים"), reverse(f"לא ניתן לבדוק האם התוכנה עדכנית\nראו פרטים להלן\n\n{str(e)}"))
             else:
                 tkMessageBox.showerror("Checking the latest version of the cochavim uzmanim software", f"It is not possible to check whether the software is up-to-date\nsee details below\n\n{str(e)}")
 
@@ -1858,12 +1892,12 @@ def install_cu():
 
 
         # טקסטים בהתאם לשפה
-        txt_desktop_question = "האם ברצונך ליצור קיצור דרך לשולחן העבודה?" if is_heb_locale else "Do you want to create a desktop shortcut?"
-        txt_start_question = "האם ברצונך ליצור גם קיצור דרך בתפריט התחל?" if is_heb_locale else "Do you also want to add a Start Menu shortcut?"
-        txt_success_desktop = "קיצור דרך בשולחן העבודה נוצר בהצלחה" if is_heb_locale else "Desktop shortcut created successfully"
-        txt_success_start = "קיצור דרך בתפריט התחל נוצר בהצלחה" if is_heb_locale else "Start Menu shortcut created successfully"
-        txt_error = "יצירת קיצור דרך נכשלה בגלל:\n" if is_heb_locale else "Creating shortcut failed because:\n"
-        txt_error_os = "מערכת ההפעלה אינה נתמכת ליצירת קיצור דרך" if is_heb_locale else "Operating system not supported for shortcut creation"
+        txt_desktop_question = reverse("האם ברצונך ליצור קיצור דרך לשולחן העבודה?") if is_heb_locale else "Do you want to create a desktop shortcut?"
+        txt_start_question = reverse("האם ברצונך ליצור גם קיצור דרך בתפריט התחל?") if is_heb_locale else "Do you also want to add a Start Menu shortcut?"
+        txt_success_desktop = reverse("קיצור דרך בשולחן העבודה נוצר בהצלחה") if is_heb_locale else "Desktop shortcut created successfully"
+        txt_success_start = reverse("קיצור דרך בתפריט התחל נוצר בהצלחה") if is_heb_locale else "Start Menu shortcut created successfully"
+        txt_error = reverse("יצירת קיצור דרך נכשלה בגלל:\n") if is_heb_locale else "Creating shortcut failed because:\n"
+        txt_error_os = reverse("מערכת ההפעלה אינה נתמכת ליצירת קיצור דרך") if is_heb_locale else "Operating system not supported for shortcut creation"
         
         # ---------- WINDOWS ----------
         if system == "windows":
@@ -1905,7 +1939,7 @@ def install_cu():
     # מכאן והלאה הפונקצייה הראשית של התקנת התוכנה
     
     # הגדרת כותרת לחלונית הודעה
-    title_for_installation_message = "התקנת תוכנת כוכבים וזמנים" if is_heb_locale else "Installing cochavim uzmanim software"
+    title_for_installation_message = reverse("התקנת תוכנת כוכבים וזמנים") if is_heb_locale else "Installing cochavim uzmanim software"
      
     # הצהרה על משתנה גלובלי שמחזיק את המיקום של תיקיית התוכנה
     global cu_dir_path
@@ -1918,7 +1952,7 @@ def install_cu():
     
     # אם אין קובץ הפעלה מתאים יש להוציא הודעה ולהפסיק את הפעולה
     if not os.path.exists(cu_dir_exe_path):
-        tkMessageBox.showinfo(title_for_installation_message, f"אין קובץ מתאים להתקנה" if is_heb_locale else f"There is no suitable file to install")
+        tkMessageBox.showinfo(title_for_installation_message, reverse(f"אין קובץ מתאים להתקנה") if is_heb_locale else f"There is no suitable file to install")
         return
     
     # קבלת נתיב מלא של התיקייה הזמנית שממנה פועלת כעת התוכנה
@@ -1926,61 +1960,63 @@ def install_cu():
           
     try:        
         # נתיב התיקייה שבה נשמרים קבצי ההתקנה
-        installation_dir = rf"{cu_dir_path}\cu_installation"
+        installation_dir = os.path.join(cu_dir_path, "cu_installation")
         
         # אם יש כבר תיקייה בשם של תיקיית היעד יש למחוק אותה כי אחרת אי אפשר להעתיק תחת שם זה
         # זה טוב לי כי אז כל התיקייה תעודכן
         if os.path.exists(installation_dir):
             if is_heb_locale:
-                msg_box = tkinter.messagebox.askquestion('אישור התקנה מחדש','\nהתוכנה כבר מותקנת\nהאם אתה בטוח שברצונך להתקין מחדש?\nאין לכבות את התוכנה עד לקבלת אישור התקנה',icon='warning',default="no")
+                msg_box = tkinter.messagebox.askquestion(reverse('אישור התקנה מחדש'),reverse('\nהתוכנה כבר מותקנת\nהאם אתה בטוח שברצונך להתקין מחדש?\nאין לכבות את התוכנה עד לקבלת אישור התקנה'),icon='warning',default="no")
             else: 
                 msg_box = tkinter.messagebox.askquestion('reinstall confirmation','\nThe software is already installed\nAre you sure you want to reinstall?\nDo not turn off the software until you receive installation confirmation',icon='warning',default="no")
             # אם המשתמש ענה שהוא רוצה להתקין מחדש
             if msg_box == 'yes':
                 shutil.rmtree(installation_dir)
             else:
-                tkMessageBox.showinfo(title_for_installation_message, f"ההתקנה בוטלה לפי בחירת המשתמש" if is_heb_locale else f"The installation was canceled by the user's choice")
+                tkMessageBox.showinfo(title_for_installation_message, reverse(f"ההתקנה בוטלה לפי בחירת המשתמש") if is_heb_locale else f"The installation was canceled by the user's choice")
                 return
         
         # אם עדיין לא מותקן כי אין תיקייה כזו
         elif not os.path.exists(installation_dir):
             if is_heb_locale:
-                msg_box = tkinter.messagebox.askquestion('אישור התקנה','\nהאם אתה בטוח שברצונך להתקין את התוכנה?\nאין לכבות את התוכנה עד לקבלת אישור התקנה?',icon='warning',default="no")
+                msg_box = tkinter.messagebox.askquestion(reverse('אישור התקנה'),reverse('\nהאם אתה בטוח שברצונך להתקין את התוכנה?\nאין לכבות את התוכנה עד לקבלת אישור התקנה?'),icon='warning',default="no")
             else:
                 msg_box = tkinter.messagebox.askquestion('Installation confirmation','\nAre you sure you want to install the software?\nDo not turn off the software until you receive installation confirmation?',icon='warning',default="no")
             # אם המשתמש ענה שהוא לא רוצה להתקין יש לבטל ולצאת מהפונקציהה
             if msg_box == 'no':
-                tkMessageBox.showinfo(title_for_installation_message, f"ההתקנה בוטלה לפי בחירת המשתמש" if is_heb_locale else f"The installation was canceled by the user's choice")
+                tkMessageBox.showinfo(title_for_installation_message, reverse(f"ההתקנה בוטלה לפי בחירת המשתמש") if is_heb_locale else f"The installation was canceled by the user's choice")
                 return
 
         # העתקת תיקיית כוכבים וזמנים הזמנית שפועלת מתיקיית טמפ למקום קבוע בתוך תיקיית כוכבים וזמנים הקבועה
         # זה בכוונה חייב להיות תחת תיקייה בשם _internal אחרת התוכנה לא תעבוד
-        shutil.copytree(absolute_temp_path, rf"{installation_dir}\_internal")
-        
+        shutil.copytree(absolute_temp_path, os.path.join(installation_dir, "_internal"))
+                
         # הוצאת קובץ התוכנה עצמו מתוך תיקיית _internal לתיקייה הראשית cu_installation כי בלי זה התוכנה לא תפעל
-        shutil.copy(rf"{installation_dir}\_internal\{cochavim_uzmanim_plus_dir_filename}", rf"{installation_dir}\{cochavim_uzmanim_plus_dir_filename}")
+        src_path = os.path.join(installation_dir, "_internal", cochavim_uzmanim_plus_dir_filename)
+        dst_path = os.path.join(installation_dir, cochavim_uzmanim_plus_dir_filename)
+        shutil.copy(src_path, dst_path)
         
         # הנתיב החדש לסקריפט פייתון המקורי של התוכנה למקרה שאני רוצה למחוק אותו כדי שהמשתמש לא יראה את הקוד המלא
-        #cu_script_new_path = rf"{cu_dir_path}\cu_installation\_internal\cochavim_uzmanim_plus.py"
+        #cu_script_new_path = os.path.join(cu_dir_path, "cu_installation", "_internal", "cochavim_uzmanim_plus.py")
         # מחיקת קובץ סקריפט פייתון המקורי של התוכנה כדי שלא יהיה גלוי למשתמש
         #os.remove(cu_script_new_path)
         
         # הודעה למשתמש
         if is_heb_locale:
-            tkMessageBox.showinfo("התקנת תוכנת כוכבים וזמנים", f"התוכנה הותקנה בתיקייה הבאה\n{installation_dir}\nכעת ניצור קיצורי דרך בשולחן העבודה ובתפריט ההתחלה")
+            tkMessageBox.showinfo(reverse("התקנת תוכנת כוכבים וזמנים"), reverse(f"התוכנה הותקנה בתיקייה הבאה\n{installation_dir}\nכעת ניצור קיצורי דרך בשולחן העבודה ובתפריט ההתחלה"))
         else:
             tkMessageBox.showinfo("Installing cochavim uzmanim software", f"The software has been installed in the following folder\n{installation_dir}\nNow we will create shortcuts on the desktop and start menu")
             
     # במקרה של שגיאה בהתקנה
     except Exception as e:
-        tkMessageBox.showinfo(title_for_installation_message, f"התקנת התוכנה נכשלה בגלל {e}" if is_heb_locale else f"Software installation failed because {e}")
+        tkMessageBox.showinfo(title_for_installation_message, reverse(f"התקנת התוכנה נכשלה בגלל {e}") if is_heb_locale else f"Software installation failed because {e}")
         return # אם לא הצליח יוצאים מהפונקצייה ולא ממשיכים ליצירת קיצורי דרך
             
     # אם ההתקנה הצליחה יוצרים קיצורי דרך לתוכנה המותקנת
     # הנתיב החדש לקובץ ההפעלה של התוכנה המותקנת
-    cu_dir_exe_new_path = rf"{cu_dir_path}\cu_installation\{cochavim_uzmanim_plus_dir_filename}"
+    cu_dir_exe_new_path = os.path.join(cu_dir_path, "cu_installation", cochavim_uzmanim_plus_dir_filename)
     # שם קיצור הדרך
-    shortcut_name = "כוכבים וזמנים גרסה מותקנת" if is_heb_locale else "cochavim uzmanim installed version"
+    shortcut_name = reverse("כוכבים וזמנים גרסה מותקנת") if is_heb_locale else "cochavim uzmanim installed version"
     # קריאה לפונקציית יצירת קיצורי הדרך שהוגדרה לעיל
     create_shortcut(cu_dir_exe_new_path, shortcut_name, is_heb_locale)
   
@@ -1991,7 +2027,7 @@ def delete_edited_locations_file():
     # אם קיים קובץ מיקומים ערוך יש להקפיץ הודעת אישור למחיקת הקובץ ואם יש אישור אז הקובץ נמחק
     if os.path.exists(locations_edited_path):
         if is_heb_locale:
-            msg_box = tkinter.messagebox.askquestion('איפוס קובץ המיקומים', 'אזהרה! פעולה זו אינה ניתנת לביטול\nהאם אתה בטוח שברצונך לאפס את קובץ המיקומים?\nאם כן, התוכנה תיסגר ויש להפעילה מחדש',icon='warning', default="no")
+            msg_box = tkinter.messagebox.askquestion(reverse('איפוס קובץ המיקומים'), reverse('אזהרה! פעולה זו אינה ניתנת לביטול\nהאם אתה בטוח שברצונך לאפס את קובץ המיקומים?\nאם כן, התוכנה תיסגר ויש להפעילה מחדש'),icon='warning', default="no")
         else:
             msg_box = tkinter.messagebox.askquestion('Resetting the locations file', 'Warning! This action cannot be undone\nAre you sure you want to reset the locations file?\nIf so, the software will close and must be restarted',icon='warning', default ="no")
         if msg_box == 'yes':
@@ -2006,7 +2042,7 @@ def add_new_location():
     
     # כאשר נעשה שימוש בקובץ המיקומים המקורי אין שום משמעות לפונקצייה זו ולכן מדלגים על כולה
     if which_locations_file == "מקורי":
-        tkMessageBox.showinfo("שגיאה", "לא ניתן לערוך את קובץ המיקומים המקורי. לחץ על 'איפוס קובץ המיקומים' ונסה שוב. אם השגיאה חוזרת לאחר האיפוס - אין אפשרות במחשב זה לערוך שינויים במיקומים")
+        tkMessageBox.showinfo(reverse("שגיאה"), reverse("לא ניתן לערוך את קובץ המיקומים המקורי. לחץ על 'איפוס קובץ המיקומים' ונסה שוב. אם השגיאה חוזרת לאחר האיפוס - אין אפשרות במחשב זה לערוך שינויים במיקומים"))
         pass
     
     # בכל מקרה אחר
@@ -2014,26 +2050,26 @@ def add_new_location():
         # חלון הוספת המיקום    
         loc = Toplevel(ws)
         loc.geometry(f"{round(500*magnification_factor)}x{round(200*magnification_factor)}+{round(70*magnification_factor)}+{round(200*magnification_factor)}")
-        loc.title("כוכבים וזמנים: הוספת מיקום חדש" if is_heb_locale else "Adding a new location")
+        loc.title(reverse("כוכבים וזמנים: הוספת מיקום חדש", for_title = True) if is_heb_locale else "Adding a new location")
         # מיקום חלון הוספת מיקום מעל החלון הראשי
         loc.wm_transient(ws)
         # הגדרת צבע לכל החלון
         loc.configure(bg=cu_color)
         text_en="\nEnter data and press the add button\nFor longitude that is *west* of Greenwich or latitude that is *south* of the equator\nput a minus sign before the number"
-        Label(loc, text="\nהזן נתונים ולחץ על כפתור ההוספה\nעבור אורך שהוא *מערבי* מגריניץ' או רוחב שהוא *דרומי* מקו המשווה - סמן מינוס לפני המספר \nאם הגובה אינו ידוע לך - השאר ריק\n" if is_heb_locale else text_en).grid(column=0, row=0, columnspan=5)
+        Label(loc, text=reverse("\nהזן נתונים ולחץ על כפתור ההוספה\nעבור אורך שהוא *מערבי* מגריניץ' או רוחב שהוא *דרומי* מקו המשווה - סמן מינוס לפני המספר \nאם הגובה אינו ידוע לך - השאר ריק\n") if is_heb_locale else text_en).grid(column=0, row=0, columnspan=5)
         # הגדרת משתנים עבור השדות הנדרשים למלא והגדרת השדות הנדרשים עצמם
         new_name = StringVar(loc)
         new_lon = StringVar(loc)
         new_lat = StringVar(loc)
         new_elev = StringVar(loc)
         Entry(loc, textvariable=new_name, width=13, justify='center',state="normal").grid(column=3, row=1)
-        Label(loc, text ="שם המקום (לפחות אות אחת)" if is_heb_locale else "Location name (at least 1 letter)").grid(column=3, row=2)
+        Label(loc, text =reverse("שם המקום (לפחות אות אחת)") if is_heb_locale else "Location name (at least 1 letter)").grid(column=3, row=2)
         Entry(loc, textvariable=new_lat, width=9,state="normal").grid(column=2, row=1)
-        Label(loc, text ="קו רוחב (עֶשׂרוֹנִי)" if is_heb_locale else "latitude (decimal)").grid(column=2, row=2)
+        Label(loc, text =reverse("קו רוחב (עֶשׂרוֹנִי)") if is_heb_locale else "latitude (decimal)").grid(column=2, row=2)
         Entry(loc, textvariable=new_lon, width=9,state="normal").grid(column=1, row=1)
-        Label(loc, text ="קו אורך (עֶשׂרוֹנִי)" if is_heb_locale else "longitude (decimal)").grid(column=1, row=2)
+        Label(loc, text =reverse("קו אורך (עֶשׂרוֹנִי)") if is_heb_locale else "longitude (decimal)").grid(column=1, row=2)
         Entry(loc, textvariable=new_elev, width=9,state="normal").grid(column=0, row=1)
-        Label(loc, text ="גובה (במטרים)" if is_heb_locale else "Elevation (Meters)").grid(column=0, row=2)
+        Label(loc, text =reverse("גובה (במטרים)") if is_heb_locale else "Elevation (Meters)").grid(column=0, row=2)
         Label(loc, text ="                                     ").grid(column=0, row=3)
 
         # הגדרת פונקציית משנה לצורך בדיקת ואימות הנתונים שהוזנו במיקום הידני ושמירתם אם הם תקינים
@@ -2056,20 +2092,20 @@ def add_new_location():
             # אם יש בעיה, להודיע למשתמש
             except ValueError:
                 if is_heb_locale:
-                    tkMessageBox.showinfo("שגיאה בניסיון הוספת מיקום", "יש בעיה באחד או יותר מהנתונים שהזנת - נסה שנית")
+                    tkMessageBox.showinfo(reverse("שגיאה בניסיון הוספת מיקום"), reverse("יש בעיה באחד או יותר מהנתונים שהזנת - נסה שנית"))
                 else:
                     tkMessageBox.showinfo("Error trying to add a location", "There is a problem with one or more of the data you entered - try again")
 
             # רק אם יש מידע טקסטואלי במשתנה שם המקום, וגם שאר הערכים בשדות האחרים הם מספר עשרוני
             if name != 0 and type(name) == str and not str(name).isdigit() and type(latit) == float and type(long) == float and type(elev) == float:
 
-                new_location = [name+"#", latit, long, elev, "", "no English name"] if is_heb_locale else ["אין שם בעברית", latit, long, elev, "", name+"#"]
+                new_location = [name+"#", latit, long, elev, "", "no English name"] if is_heb_locale else [reverse("אין שם בעברית"), latit, long, elev, "", name+"#"]
                 
                 # שמירת המיקום החדש לקובץ המיקומים הערוך באמצעות פונקצייה שהגדרתי למעלה המטפלת בעריכת קובץ המיקומים
                 edit_locations_file(location = new_location)
 
         # הצבת לחצן שישמור את המיקום החדש באמצעות הפונקצצייה שלעיל 
-        Button(loc, text ="הוסף לקובץ המיקומים" if is_heb_locale else "Add to locations file", borderwidth=5, command = save_location).grid(column=0, row=4, columnspan=5)
+        Button(loc, text =reverse("הוסף לקובץ המיקומים") if is_heb_locale else "Add to locations file", borderwidth=5, command = save_location).grid(column=0, row=4, columnspan=5)
         Label(loc, text ="").grid(column=2, row=5)
 
 
@@ -2100,7 +2136,7 @@ def open_subprocess():
             heb_year_information()
             subprocess_patuach += 1
     else:
-        tkMessageBox.showinfo("שגיאה", "כרגע יש שלוש חלונות פעילים שנפתחו מתוך התוכנה\nסגור אחד מהם ונסה שנית")
+        tkMessageBox.showinfo(reverse("שגיאה"), reverse("כרגע יש שלוש חלונות פעילים שנפתחו מתוך התוכנה\nסגור אחד מהם ונסה שנית"))
 
 
 # פונקצייה לשינוי שפת ברירת המחדל של התוכנה
@@ -2111,11 +2147,11 @@ def change_default_language():
     global is_heb_locale
     
     # הגדרת הכתובת עבור קובץ ברירת מחדל של השפה הראשית לתוכנה
-    language_path = rf"{cu_dir_path}\cu_language.txt"
+    language_path = os.path.join(cu_dir_path, "cu_language.txt")
     
     # שאילה האם המשתמש בטוח שברצונו לשנות את מיקום ברירת המחדל של התוכנה
     if is_heb_locale:
-        msg_box = tkinter.messagebox.askquestion('אישור שינוי שפת ברירת מחדל של התוכנה','\nהאם אתה בטוח שברצונך לשנות את שפת ברירת המחדל?\nאם כן, התוכנה תיסגר ויש להפעילה מחדש',icon='warning', default="no")
+        msg_box = tkinter.messagebox.askquestion(reverse('אישור שינוי שפת ברירת מחדל של התוכנה'),reverse('\nהאם אתה בטוח שברצונך לשנות את שפת ברירת המחדל?\nאם כן, התוכנה תיסגר ויש להפעילה מחדש'),icon='warning', default="no")
     else:
         msg_box = tkinter.messagebox.askquestion('Confirm to change the software default language','\nAre you sure you want to change the software default language?\nIf so, the software will close and must be restarted',icon='warning', default="no")
     
@@ -2815,10 +2851,10 @@ def esber():
     esber.geometry(f"{round(800*magnification_factor)}x{round(685*magnification_factor)}+{round(100*magnification_factor)}+{round(1*magnification_factor)}")
     # הגדרת צבע לכל החלון
     esber.configure(bg=cu_color)
-    esber.title("כוכבים וזמנים: מידע כללי והסברים")
-    Label(esber, text="ברוכים הבאים לתוכנת כוכבים וזמנים" if is_heb_locale else "Welcome to the Cochavim uzmanim software", font = "david 18 bold").pack()
-    Label(esber, text="תוכנה זו נכתבה על ידי הרב ד''ר שמחה גרשון בורר" if is_heb_locale else "This software was written by Rabbi Dr. Simcha Gershon Bohrer", font = "david 14 bold").pack()
-    Label(esber, text="לפניות\nsgbmzm@gmail.com\n" if is_heb_locale else "For contact\nsgbmzm@gmail.com\n", font = "david 13 bold").pack()
+    esber.title(reverse("כוכבים וזמנים: מידע כללי והסברים", for_title = True))
+    Label(esber, text=reverse("ברוכים הבאים לתוכנת כוכבים וזמנים") if is_heb_locale else "Welcome to the Cochavim uzmanim software", font = "david 18 bold").pack()
+    Label(esber, text=reverse("תוכנה זו נכתבה על ידי הרב ד''ר שמחה גרשון בורר") if is_heb_locale else "This software was written by Rabbi Dr. Simcha Gershon Bohrer", font = "david 14 bold").pack()
+    Label(esber, text=reverse(f"לפניות\n {reverse('sgbmzm@gmail.com')} \n") if is_heb_locale else "For contact\nsgbmzm@gmail.com\n", font = "david 13 bold").pack()
     
     # אזור נפרד לטקסט ההסברים
     output_text = cu_PanedWindow(esber)
@@ -2893,7 +2929,7 @@ def time_skip(time):
     
     # יצירת חלון ראשי
     window = Toplevel(ws)
-    window.title("זמן לדילוג")
+    window.title(reverse("זמן לדילוג", for_title = True) if is_heb_locale else "time to skip")
     # מיקום החלון מעל החלון הראשי
     window.wm_transient(ws)
     window.minsize(180,310)
@@ -2917,12 +2953,12 @@ def time_skip(time):
     seconds_spinbox = tkinter.Spinbox(window, textvariable=seconds, from_=0, to=99, width=2,wrap=True,font = "narkisim 17",justify='center',state = 'readonly')
 
     # הוספת תוויות לספינבוקסים
-    tkinter.Label(window, text="בחרו זמן לדילוג", font = "david 15 bold").grid(row=0, column=2)
-    tkinter.Label(window, text="ימים",font = "david 15").grid(row=1, column=2)
-    tkinter.Label(window, text="שעות",font = "david 15").grid(row=2, column=2)
-    tkinter.Label(window, text="דקות",font = "david 15").grid(row=3, column=2)
-    tkinter.Label(window, text="שניות",font = "david 15").grid(row=4, column=2)
-    tkinter.Label(window, text="קדימה/אחורה", font = "david 15").grid(row=5, column=2)
+    tkinter.Label(window, text=reverse("בחרו זמן לדילוג"), font = "david 15 bold").grid(row=0, column=2)
+    tkinter.Label(window, text=reverse("ימים"),font = "david 15").grid(row=1, column=2)
+    tkinter.Label(window, text=reverse("שעות"),font = "david 15").grid(row=2, column=2)
+    tkinter.Label(window, text=reverse("דקות"),font = "david 15").grid(row=3, column=2)
+    tkinter.Label(window, text=reverse("שניות"),font = "david 15").grid(row=4, column=2)
+    tkinter.Label(window, text=reverse("קדימה/אחורה"), font = "david 15").grid(row=5, column=2)
 
     # הצגת הספינבוקסים באמצעות רשימה
     
@@ -2934,11 +2970,11 @@ def time_skip(time):
 
 
     # כפתור איפוס
-    reset_values_button = tkinter.Button(window, text="אפס הכל", command=reset_values)
+    reset_values_button = tkinter.Button(window, text=reverse("אפס הכל"), command=reset_values)
     reset_values_button.grid(row=6, column=1, columnspan=2, pady=10)
     
     # כפתור לקבלת הערכים שנבחרו והזנתם לשעון הראשי
-    get_values_button = tkinter.Button(window, text="בצע דילוג",font = "david 15 bold", command=get_values)
+    get_values_button = tkinter.Button(window, text=reverse("בצע דילוג"),font = "david 15 bold", command=get_values)
     get_values_button.grid(row=7, column=1, columnspan=2, pady=10)
 
 
@@ -2963,7 +2999,7 @@ def time_scale_showinfo():
     # קבלת שעה מקום ואיזור הזמן מהמשתמש
     time,location,location_timezone=time_location_timezone()
     
-    rr = f'''
+    ts_info = f'''
         השנה הלועזית המבוקשת היא:     {mean_transit_and_error_timescale_dict["year"]}
         סולם הזמן שבשימוש לשנה זו:    {mean_transit_and_error_timescale_dict["year_timescale"]} 
         לסולם זמן זה בסקייפילד יש שגיאה קטנה
@@ -2978,7 +3014,7 @@ def time_scale_showinfo():
         היום (מרידיאן-טרנזיט) בממוצע שנתי, לבין השעה 12:00 
         שהיא השעה שבה אמור להיות חצות היום בממוצע שנתי '''
 
-    tkMessageBox.showinfo("מידת השגיאה של סולם הזמן", rr)
+    tkMessageBox.showinfo(reverse("מידת השגיאה של סולם הזמן"), reverse(ts_info))
 
 
 
@@ -2993,7 +3029,7 @@ def downloading_files(url_string, file_name_string):
     הקובץ יישמר בשם file_name_string בתיקיית cu_dir_path.
     """
     if is_heb_locale:
-        msg_box = tkMessageBox.askquestion('אישור הורדת קבצים', f'\nהאם אתה בטוח שברצונך להוריד את הקובץ "{file_name_string}"?')
+        msg_box = tkMessageBox.askquestion(reverse('אישור הורדת קבצים'), reverse(f'\nהאם אתה בטוח שברצונך להוריד את הקובץ "{file_name_string}"?'))
     else:
         msg_box = tkMessageBox.askquestion('Confirm file download', f'\nAre you sure you want to download the file "{file_name_string}"?')
 
@@ -3005,8 +3041,8 @@ def downloading_files(url_string, file_name_string):
     # אם הקובץ כבר קיים לא ממשיכים הלאה
     if os.path.exists(file_path):
         tkMessageBox.showinfo(
-                "הודעה" if is_heb_locale else "Message",
-                f"הקובץ: \n'{file_name_string}' \nכבר קיים בתיקיית: {cu_dir_path}"
+                reverse("הודעה") if is_heb_locale else "Message",
+                reverse(f"הקובץ: \n'{file_name_string}' \nכבר קיים בתיקיית: {cu_dir_path}")
                 if is_heb_locale else
                 f"File: \n'{file_name_string}' \nAlready exists in dir: {cu_dir_path}"
             )
@@ -3016,9 +3052,9 @@ def downloading_files(url_string, file_name_string):
     temp_path = file_path + ".part"
 
     progress_win = Tkinter.Toplevel(ws)
-    progress_win.title("הורדת קובץ" if is_heb_locale else "Downloading file")
+    progress_win.title(reverse("הורדת קובץ") if is_heb_locale else "Downloading file")
 
-    progress_label = Tkinter.Label(progress_win, text="מתחיל בהורדה..." if is_heb_locale else "Starting download...")
+    progress_label = Tkinter.Label(progress_win, text=reverse("מתחיל בהורדה...") if is_heb_locale else "Starting download...")
     progress_label.pack(padx=10, pady=5)
 
     progress_bar = ttk.Progressbar(progress_win, length=300, mode="determinate")
@@ -3028,9 +3064,9 @@ def downloading_files(url_string, file_name_string):
 
     def cancel_download():
         cancel_flag.set()
-        progress_label.config(text="הביטול התבקש, מוחק קובץ חלקי..." if is_heb_locale else "Cancellation requested, deleting partial file...")
+        progress_label.config(text=reverse("הביטול התבקש, מוחק קובץ חלקי...") if is_heb_locale else "Cancellation requested, deleting partial file...")
 
-    cancel_button = Tkinter.Button(progress_win, text="בטל" if is_heb_locale else "Cancel", command=cancel_download)
+    cancel_button = Tkinter.Button(progress_win, text=reverse("בטל") if is_heb_locale else "Cancel", command=cancel_download)
     cancel_button.pack(padx=10, pady=5)
 
     def download():
@@ -3057,7 +3093,7 @@ def downloading_files(url_string, file_name_string):
                     progress_label.config(
                         text=f"{mb_done:.2f}/{mb_total:.2f} MB ({progress:.1f}%)"
                         if not is_heb_locale else
-                        f"{progress:.1f}% ({mb_done:.2f}/{mb_total:.2f} מגהבייט)"
+                        f"{progress:.1f}% ({mb_done:.2f}/{mb_total:.2f} MB)"
                     )
                     progress_win.update_idletasks()
 
@@ -3068,8 +3104,8 @@ def downloading_files(url_string, file_name_string):
                 except:
                     pass
                 tkMessageBox.showinfo(
-                    "הודעה" if is_heb_locale else "Message",
-                    "ההורדה בוטלה והקובץ נמחק" if is_heb_locale else "Download cancelled, file deleted"
+                    reverse("הודעה") if is_heb_locale else "Message",
+                    reverse("ההורדה בוטלה והקובץ נמחק") if is_heb_locale else "Download cancelled, file deleted"
                 )
                 progress_win.destroy()
                 return
@@ -3077,8 +3113,8 @@ def downloading_files(url_string, file_name_string):
             # הצלחה
             os.rename(temp_path, file_path) # שינוי שם הקובץ הזמני לשם הקובץ הסופי שצריך להיות
             tkMessageBox.showinfo(
-                "הודעה" if is_heb_locale else "Message",
-                f"הקובץ '{file_name_string}' הורד בהצלחה. התוכנה תיסגר וצריך להפעילה מחדש."
+                reverse("הודעה") if is_heb_locale else "Message",
+                reverse(f"הקובץ '{file_name_string}' הורד בהצלחה. התוכנה תיסגר וצריך להפעילה מחדש.")
                 if is_heb_locale else
                 f"File '{file_name_string}' downloaded successfully. The program will now close and need to restart."
             )
@@ -3090,8 +3126,8 @@ def downloading_files(url_string, file_name_string):
             except:
                 pass
             tkMessageBox.showerror(
-                "שגיאה" if is_heb_locale else "Error",
-                f"שגיאה בהורדת הקובץ '{file_name_string}':\n{e}" if is_heb_locale else f"Error downloading file '{file_name_string}':\n{e}"
+                reverse("שגיאה") if is_heb_locale else "Error",
+                reverse(f"שגיאה בהורדת הקובץ '{file_name_string}':\n{e}") if is_heb_locale else f"Error downloading file '{file_name_string}':\n{e}"
             )
             progress_win.destroy()
 
@@ -3257,9 +3293,9 @@ def time_location_timezone():
         # מגדרים את השעון העליון לעכשיו, מוציאים הודעת שגיאה וקוראים שוב לפונקצייה זו על הזמן החדש
         #set_date_time(skyfield_to_cu_time(ts.now(), location_timezone))
         set_date_time(datetime.now().astimezone(location_timezone))
-        msg="התוכנה חזרה לתאריך הנוכחי\nמפני שהתאריך שהזנת אינו בטווח שבין 1.1.1551 לבין 31.12.2649\nלשם תמיכה בתאריכים שבין 3.1.1 לבין 31.12.2999 צריך קובץ נוסף\nשם הקןבץ הוא de441s.bsp וניתן להורידו בחלון אפשרויות נוספות"
+        msg=reverse("התוכנה חזרה לתאריך הנוכחי\nמפני שהתאריך שהזנת אינו בטווח שבין 1.1.1551 לבין 31.12.2649\nלשם תמיכה בתאריכים שבין 3.1.1 לבין 31.12.2999 צריך קובץ נוסף\nשם הקןבץ הוא de441s.bsp וניתן להורידו בחלון אפשרויות נוספות")
         en_msg="The software has returned to the current date\nBecause the date you entered is not in the range between 1.1.1551 and 31.12.2649\nIn order to support dates between 3.1.1 and 31.12.2999 we need an additional file\nthe name of the file is de441s.bsp and it can be downloaded from the the additional options window"
-        tkMessageBox.showinfo("שגיאה: חסר קובץ מתאים לחישוב התאריך המבוקש" if is_heb_locale else "Error: A suitable file is missing to calculate the requested date",msg if is_heb_locale else en_msg)          
+        tkMessageBox.showinfo(reverse("שגיאה: חסר קובץ מתאים לחישוב התאריך המבוקש") if is_heb_locale else "Error: A suitable file is missing to calculate the requested date",msg if is_heb_locale else en_msg)          
         return time_location_timezone()
     
     # אפשרות רביעית: במקרה שמתוך ממיר התאריכים מגיע תאריך שאינו מכוסה אפילו לא על ידי אפאמאריס 441
@@ -3268,7 +3304,7 @@ def time_location_timezone():
         #set_date_time(skyfield_to_cu_time(ts.now(), location_timezone))
         set_date_time(datetime.now().astimezone(location_timezone))
         if is_heb_locale:
-            tkMessageBox.showinfo("שגיאה","התאריך שהזנת אינו נתמך ולכן התוכנה חזרה לתאריך הנוכחי")
+            tkMessageBox.showinfo(reverse("שגיאה"),reverse("התאריך שהזנת אינו נתמך ולכן התוכנה חזרה לתאריך הנוכחי"))
         else:
             tkMessageBox.showinfo("Error","The date you entered is not supported so the software reverted to the current date")
         return time_location_timezone()
@@ -4206,6 +4242,11 @@ def print_halachic_times():
         except IndexError:
             txt2.insert("end", "\n שגיאה\nעבור המיקום הנוכחי בתאריך הנוכחי\n התוכנה אינה יכולה לחשב זמני זריחות/שקיעות/חצות")
             
+        # ===== רוורס לכל הטקסט =====
+        full_text = txt2.get("1.0", "end-1c")
+        txt2.delete("1.0", "end")
+        txt2.insert("1.0", reverse(full_text))
+        
         # הגדרת העיצוב של הטקסט בתיבת הטקסט שיהיה ממורכז
         txt2.tag_configure("center", justify='center')
         txt2.tag_add("center", 1.0, "end")
@@ -4287,7 +4328,7 @@ def print_halachic_times():
         stations_url = 'http://celestrak.org/NORAD/elements/stations.txt'
         
         # הנתיב בתיקיית התוכנה שבו צריך להיות קובץ הלווינים
-        stations_path = rf"{cu_dir_path}\stations.txt"
+        stations_path = os.path.join(cu_dir_path, "stations.txt")
         
         #############
         # זו הדרך המקורית של סקייפילד להוריד קובץ אבל לא ברור שיכול לשמור במיקום ספציפי
@@ -4480,7 +4521,11 @@ def print_halachic_times():
         except IndexError:
             txt2.insert("end", "\n\n !שגיאה בניסיון חישוב הנתונים של ראיות תחנת החלל הבינלאומית")
         
-
+        # ===== רוורס לכל הטקסט =====
+        full_text = txt2.get("1.0", "end-1c")
+        txt2.delete("1.0", "end")
+        txt2.insert("1.0", reverse(full_text))
+        
         # הגדרת העיצוב של הטקסט בתיבת הטקסט שיהיה ממורכז
         txt2.tag_configure("center", justify='center')
         txt2.tag_add("center", 1.0, "end")
@@ -4641,7 +4686,12 @@ def print_halachic_times():
         except IndexError:
             txt2.insert("end", "\n\n ! שגיאה בחישוב השקיעה !\n\n במיקום ובתאריך שהוגדרו, השמש לא יורדת לגובה 4 מעלות תחת האופק")
         
-
+        
+        # ===== רוורס לכל הטקסט =====
+        full_text = txt2.get("1.0", "end-1c")
+        txt2.delete("1.0", "end")
+        txt2.insert("1.0", reverse(full_text))   
+        
         # הגדרת העיצוב של הטקסט בתיבת הטקסט שיהיה ממורכז
         txt2.tag_configure("center", justify='center')
         txt2.tag_add("center", 1.0, "end")
@@ -4881,11 +4931,15 @@ def print_halachic_times():
             moon_search_day = sight_day_greg + timedelta (days = 1, minutes = 1)
             sight_day_greg, normal_vision_factor = print_all_about_first_moon (moon_search_day, hitkabzut)
             
+        # ===== רוורס לכל הטקסט =====
+        full_text = txt2.get("1.0", "end-1c")
+        txt2.delete("1.0", "end")
+        txt2.insert("1.0", reverse(full_text))      
         
         # הגדרת העיצוב של הטקסט בתיבת הטקסט שיהיה ממורכז
         txt2.tag_configure("center", justify='center')
         txt2.tag_add("center", 1.0, "end")
-
+        
         # סגירת תיבת הטקסט לקריאה בלבד
         txt2.configure(state="disabled")
     
@@ -5122,6 +5176,11 @@ def print_halachic_times():
             moon_search_day = sight_day_greg - timedelta (days = 1, minutes = 1)
             sight_day_greg, normal_vision_factor = print_all_about_last_moon (moon_search_day, hitkabzut)
             
+        # ===== רוורס לכל הטקסט =====
+        full_text = txt2.get("1.0", "end-1c")
+        txt2.delete("1.0", "end")
+        txt2.insert("1.0", reverse(full_text))
+        
         # הגדרת העיצוב של הטקסט בתיבת הטקסט שיהיה ממורכז
         txt2.tag_configure("center", justify='center')
         txt2.tag_add("center", 1.0, "end")
@@ -5158,13 +5217,20 @@ def print_halachic_times():
         # שם הקובץ עבור ירח אחרון בחודש
         elif choice_print.get() == "PREVIOUS_LAST_MOON":
             file = asksaveasfilename(defaultextension=".txt", initialfile = f"{city_for_print}-מידע-ירח-אחרון-הקודם-לפני-{greg:%d-%m-%Y}")
+        # שם הקובץ עבור ירח אחרון בחודש
+        elif choice_print.get() == "STARS_EVENING":
+            file = asksaveasfilename(defaultextension=".txt", initialfile = f"{city_for_print}-מידע-כוכבים-ראשונים-בערב-לתאריך-{greg:%d-%m-%Y}")
+       # שם הקובץ עבור ירח אחרון בחודש
+        elif choice_print.get() == "STARS_MORNING":
+            file = asksaveasfilename(defaultextension=".txt", initialfile = f"{city_for_print}-מידע-כוכבים-אחרונים-בבוקר-לתאריך-{greg:%d-%m-%Y}")
+      
         
         # שמירת הקובץ תוך אפשרות ציון הקידוד המתאים
         # אפשרויות קידוד: cu_encod או "utf-8"
         # איף פייל נועד למנוע שגיאה במקרה שסגרו את החלון כי החליטו לא לשמור את הקובץ
         if file:
             with open(file, 'w', encoding="utf-8") as f:
-                f.write(C)
+                f.write(reverse(C))
         
         
         # ביטול הסימון של וי ליד הכפתור לאחר ביצוע הפעולה 
@@ -5204,7 +5270,7 @@ def print_halachic_times():
     ph_times.configure(bg=cu_color)
 
     # כפתור לפונקציית שמירת קובץ טקסט
-    Button(ph_times, text="שמור זמנים לקובץ - וסגור חלון",width=25,command=save_txt2_to_path).pack()
+    Button(ph_times, text=reverse("שמור זמנים לקובץ - וסגור חלון"),width=25,command=save_txt2_to_path).pack()
 
     # אזור נפרד לטקסט
     output_text2 = cu_PanedWindow(ph_times)
@@ -5282,7 +5348,7 @@ def export_calendar_halacha_times():
         return
     
     # התחייבות המשתמש
-    msg_box = tkinter.messagebox.askquestion(f'התחייבות לפני יצירת קובץ זמנים' if is_heb_locale else 'Commitment before creating a times file',f'\nאני מתחייב/ת שלא להשתמש בקבצים למטרות רווח בלא קבלת אישור מפורש מאת יוצר התוכנה' if is_heb_locale else '\nI undertake not to use these files for financial gain without receiving express permission from the creator of the software',icon='warning', default="no")
+    msg_box = tkinter.messagebox.askquestion(reverse(f'התחייבות לפני יצירת קובץ זמנים') if is_heb_locale else 'Commitment before creating a times file',f'\nאני מתחייב/ת שלא להשתמש בקבצים למטרות רווח בלא קבלת אישור מפורש מאת יוצר התוכנה' if is_heb_locale else '\nI undertake not to use these files for financial gain without receiving express permission from the creator of the software',icon='warning', default="no")
     
     # אם המשתמש לא מסכים - יוצאים מהפונקצייה
     if msg_box == 'no':
@@ -5315,21 +5381,21 @@ def export_calendar_halacha_times():
 
     # משתנה לקביעת הדפסת המידע של: האם מדובר בלוח זמנים חודשי או שנתי כולל החודש והשנה המדוברים
     if choice_zmanim_export.get() == "HEB_MONTH":
-        chodshi_shnati = f"חודשי לחודש עברי {heb.month_name(True)} {heb.hebrew_year(True)}"
+        chodshi_shnati = reverse(f"חודשי לחודש עברי {heb.month_name(True)} {heb.hebrew_year(True)}")
     elif choice_zmanim_export.get() == "HEB_YEAR":
-        chodshi_shnati = f"שנתי לשנה עברית {heb.hebrew_year(True)}"
+        chodshi_shnati = reverse(f"שנתי לשנה עברית {heb.hebrew_year(True)}")
     elif choice_zmanim_export.get() == "GREG_MONTH":
-        chodshi_shnati = f"חודשי לחודש גרגוריאני {greg.month}-{greg.year}"
+        chodshi_shnati = reverse(f"חודשי לחודש גרגוריאני {greg.month}-{greg.year}")
     elif choice_zmanim_export.get() == "GREG_YEAR":
-        chodshi_shnati = f"שנתי לשנה גרגוריאנית {greg.year}"
+        chodshi_shnati = reverse(f"שנתי לשנה גרגוריאנית {greg.year}")
     
     # משתנה לקביעת מילים לומר בערך כמה זמן תארך ההמתנה לחישובים
-    long_time = "(כשתי דקות)" if choice_zmanim_export.get() in ["HEB_MONTH","GREG_MONTH"] else "(כחצי שעה!)"
+    long_time = reverse("(כשתי דקות)") if choice_zmanim_export.get() in ["HEB_MONTH","GREG_MONTH"] else reverse("(כחצי שעה!)")
     
     # הגדרת השאלה    
-    question = f'\nהאם ברצונך ליצור קובץ זמנֵי-הלכה {chodshi_shnati}?\nשים לב! אין להשתמש בתוכנה עד לסיום החישובים {long_time}'
+    question = reverse(f'\nהאם ברצונך ליצור קובץ זמנֵי-הלכה {chodshi_shnati}?\nשים לב! אין להשתמש בתוכנה עד לסיום החישובים {long_time}')
     # שאילה האם המשתמש בטוח שברצונו ליצור קובץ זמנים חודשי/שנתי
-    msg_box = tkinter.messagebox.askquestion(f'יצירת קובץ זמנֵי-הלכה {chodshi_shnati}',question,icon='warning', default="no")
+    msg_box = tkinter.messagebox.askquestion(reverse(f'יצירת קובץ זמנֵי-הלכה {chodshi_shnati}'),question,icon='warning', default="no")
     
     # אם המשתמש ענה שהוא לא מאשר יש לצאת מיד מהפונקצייה
     if msg_box == 'no':
@@ -7297,7 +7363,7 @@ def heb_year_information():
         # איף פייל נועד למנוע שגיאה במקרה שסגרו את החלון כי החליטו לא לשמור את הקובץ
         if file:
             with open(file, 'w', encoding="utf-8") as f:
-                f.write(C)
+                f.write(reverse(C))
         
        
     #-----------------------------------------------------------------------------------------------------------
@@ -7604,6 +7670,10 @@ def heb_year_information():
         txt.insert("end", "\nמעוברת כסדרה בת 384 ימים: גכז")
         txt.insert("end", "\nמעוברת שלמה בת 385 ימים: בשז, השג, זשה")
 
+        # ===== רוורס חכם לכל תיבת הטקסט (לינוקס) =====
+        full_text = txt.get("1.0", "end-1c")
+        txt.delete("1.0", "end")
+        txt.insert("1.0", reverse(full_text))
 
         # הגדרת העיצוב של הטקסט בתיבת הטקסט שיהיה ממורכז
         txt.tag_configure("center", justify='center')
@@ -7624,7 +7694,7 @@ def heb_year_information():
         hyi=Toplevel(ws) # Tk()
         hyi.minsize(675,600)
         hyi.geometry(f"{round(675*magnification_factor)}x{round(685*magnification_factor)}+{round(110*magnification_factor)}+{round(1*magnification_factor)}")
-        hyi.title(f'מידע על שנה עברית - מאת הרב ד"ר שמחה גרשון בורר | גרסה: {dt.date(2024,8,26):%d/%m/%Y}')
+        hyi.title(reverse(f'מידע על שנה עברית - מאת הרב ד"ר שמחה גרשון בורר | גרסה: {dt.date(2024,8,26):%d/%m/%Y}', for_title = True))
         #הגדרת צבע לכל החלון
         hyi.configure(bg=cu_color)
         
@@ -7665,12 +7735,12 @@ def heb_year_information():
         Entry_heb_year = StringVar(hyi)
         heb_year_cb = ttk.Combobox(input_heb, textvariable=Entry_heb_year, width=16, state=state1,values=[*heb_years],font="narkisim 18",justify='center',)
         heb_year_cb.grid(column=2, row=2)
-        Label(input_heb, text="בחרו שנה עברית").grid(column=2, row=3)
+        Label(input_heb, text=reverse("בחרו שנה עברית")).grid(column=2, row=3)
         
         Label(input_heb, text="   ").grid(column=1, row=2)
         
         # הגדרת משתנה ששומר כפתור לשמירת הנתונים לקובץ
-        Button(input_heb, text="שמירת\nהנתונים לקובץ",command=save_txt_to_path).grid(column=0, row=2)
+        Button(input_heb, text=reverse("שמירת\nהנתונים לקובץ"),command=save_txt_to_path).grid(column=0, row=2)
         
         
         input_heb.pack()
@@ -7963,7 +8033,7 @@ def date_converter():
             Julian_Gregorian_day_difference.set(calculate_gregorian_julian_difference_days(birth_greg.year,birth_greg.month))
 
             # הגדרה איזה סוג תאריך לועזי
-            Entry_julian_or_gregorian.set("גרגוריאני")
+            Entry_julian_or_gregorian.set(reverse("גרגוריאני"))
 
             # הזנת התאריך !הגרגוריאני! המקביל והיום בשבוע
             Entry_greg_year.set(f'{birth_greg.year :02.0f}')
@@ -7994,7 +8064,7 @@ def date_converter():
                 JDa,JDb = jdcal.gcal2jd(year_for_jdcal,int(Entry_greg_month.get()),int(Entry_greg_day.get()))
                 julian_year_month_day = jdcal.jd2jcal(JDa,JDb)
 
-                Entry_julian_or_gregorian.set("יוליאני")
+                Entry_julian_or_gregorian.set(reverse("יוליאני"))
                 
                 # חייבים לתקן את מספר השנה הלועזית עבור שנים מאפס ומטה כי ספריית החישובים ליום יוליאני הולכת לפי השיטה של האסטרונומים שסופרים את שנת אפס ואילו ספריית פיילוח וגם אני משתמשים בשיטה של ההיסטוריונים שאין בה שנה אפס
                 get_jdcal_julian_year = julian_year_month_day[0]
@@ -8025,7 +8095,7 @@ def date_converter():
                 Entry_weekday.set("")
                 Entry_JD.set("")
                 Julian_Gregorian_day_difference.set("")
-                heb_eror.config(text="!!!תאריך עברי שאינו קיים: נסה שנית!!!",font="david 18 bold")
+                heb_eror.config(text=reverse("!!!תאריך עברי שאינו קיים: נסה שנית!!!"),font="david 18 bold")
 
         # במקרה שהמשתמש הזין תאריך עברי שאינו קיים מוחקים את מה שיש בתאריך הלועזי ומודיעים שגיאה
         except: # ValueError ++
@@ -8036,7 +8106,7 @@ def date_converter():
             Entry_weekday.set("")
             Entry_JD.set("")
             Julian_Gregorian_day_difference.set("")
-            heb_eror.config(text="!!!תאריך עברי שאינו קיים: נסה שנית!!!",font="david 18 bold")
+            heb_eror.config(text=reverse("!!!תאריך עברי שאינו קיים: נסה שנית!!!"),font="david 18 bold")
 
     # פונקצייה להמרה מתאריך לועזי לעברי              
     def greg_to_heb():
@@ -8049,7 +8119,7 @@ def date_converter():
             Julian_Gregorian_day_difference.set(calculate_gregorian_julian_difference_days(birth_greg.year,birth_greg.month))
 
             # הגדרה האם מדובר בתאריך יוליאני או גרגוריאני
-            Entry_julian_or_gregorian.set("גרגוריאני")
+            Entry_julian_or_gregorian.set(reverse("גרגוריאני"))
             
             # הדפסת יום יוליאני של תאריך גרגוריאני. זה נכון גם עבור התאריך היוליאני כי זה אותו יום
             Entry_JD.set(birth_greg.jd)
@@ -8081,7 +8151,7 @@ def date_converter():
                 birth_greg = dates.GregorianDate(year_for_pyluach,greg_year_month_day[1],greg_year_month_day[2])
 
                 # הגדרה האם מדובר בתאריך יוליאני או גרגוריאני
-                Entry_julian_or_gregorian.set("יוליאני")
+                Entry_julian_or_gregorian.set(reverse("יוליאני"))
                 
                 #  הדפסת יום יוליאני של תאריך יוליאני
                 #Entry_JD.set(JDa+JDb)
@@ -8112,7 +8182,7 @@ def date_converter():
                 Entry_julian_or_gregorian.set("")
                 Entry_JD.set("")
                 Julian_Gregorian_day_difference.set("")
-                greg_eror.config(text="!תאריך לא קיים עקב דילוג ללוח הגרגוריאני!",font="david 18 bold")
+                greg_eror.config(text=reverse("!תאריך לא קיים עקב דילוג ללוח הגרגוריאני!"),font="david 18 bold")
 
         # במקרה שהמשתמש הזין תאריך לועזי שאינו קיים מוחקים את מה שיש בתאריך העברי ומודיעים שגיאה      
         except ValueError:
@@ -8123,7 +8193,7 @@ def date_converter():
             Entry_JD.set("")
             Julian_Gregorian_day_difference.set("")
             # הכנסת הודעת השגיאה בשורת הרווח שיש מתחת התאריך הלועזי
-            greg_eror.config(text="!!!תאריך לועזי שאינו קיים: נסה שנית!!!", font="david 18 bold")
+            greg_eror.config(text=reverse("!!!תאריך לועזי שאינו קיים: נסה שנית!!!"), font="david 18 bold")
 
 
     # פונקצייה להגדרת התאריך הנוכחי בכניסה לתוכנה    
@@ -8158,7 +8228,7 @@ def date_converter():
         converter = Toplevel(ws) # Tk()
         converter.minsize(450,630)
         converter.geometry(f"{round(450*magnification_factor)}x{round(630*magnification_factor)}+{round(320*magnification_factor)}+{round(1*magnification_factor)}")
-        converter.title(f'ממיר תאריכים עברי-לועזי-עברי | גרסה:  {dt.date(2024,11,4):%d/%m/%Y}')
+        converter.title(reverse(f'ממיר תאריכים עברי-לועזי-עברי | גרסה:  {dt.date(2024,11,4):%d/%m/%Y}', for_title = True))
         # אם רוצים לעשות שהחלון הזה יהיה מעל כל החלונות שבמחשב. זה חשוב בעיקר כאשר רזולוציית המסך מוגדלת
         #converter.attributes('-topmost',True)
         # הגדרת צבע לכל החלון
@@ -8190,7 +8260,7 @@ def date_converter():
 
 
         # כותרת
-        Label(heb_date, text="תאריך עברי (לוח-קבוע)", font="david 18 bold").grid(column=0, row=0, columnspan=3)
+        Label(heb_date, text=reverse("תאריך עברי (לוח-קבוע)"), font="david 18 bold").grid(column=0, row=0, columnspan=3)
 
 
         # יצירת רצף של שנים עבריות במערך עבור בחירת שנים עבריות
@@ -8203,7 +8273,7 @@ def date_converter():
         Entry_heb_year = StringVar(converter)
         heb_year_cb = ttk.Combobox(heb_date, textvariable=Entry_heb_year, width=9, state=state1,values=[*heb_years],font="narkisim 16",justify='center',)
         heb_year_cb.grid(column=0, row=1)
-        Label(heb_date, text="שנה").grid(column=0, row=2)
+        Label(heb_date, text=reverse("שנה")).grid(column=0, row=2)
 
         Entry_heb_month = StringVar(converter)
         '''
@@ -8226,7 +8296,7 @@ def date_converter():
             justify='center'
         ).grid(column=1, row=1)
         
-        Label(heb_date, text="חודש").grid(column=1, row=2)
+        Label(heb_date, text=reverse("חודש")).grid(column=1, row=2)
 
         # הכנת מערך עם שלושים ימים עבריים עבור ימי החודש
         b = range(1,31)
@@ -8249,7 +8319,7 @@ def date_converter():
             font="narkisim 17", 
             justify='center'
         ).grid(column=2, row=1)
-        Label(heb_date, text="יום").grid(column=2, row=2)
+        Label(heb_date, text=reverse("יום")).grid(column=2, row=2)
 
         heb_date.pack()
 
@@ -8259,7 +8329,7 @@ def date_converter():
         heb_eror.pack()
 
 
-        Label(converter, text="תאריך לועזי", font="david 18 bold").pack()
+        Label(converter, text=reverse("תאריך לועזי"), font="david 18 bold").pack()
 
         Rd_PW = cu_PanedWindow(converter)
 
@@ -8271,9 +8341,9 @@ def date_converter():
                 greg_to_heb()
 
         Radiobutton_julian_or_gregorian = IntVar(converter)
-        R1 = Radiobutton(Rd_PW, text="גרגוריאני", variable=Radiobutton_julian_or_gregorian, value=1, command = command_for_Radiobutton).grid(column=1, row=1)
-        R2 = Radiobutton(Rd_PW, text="יוליאני", variable=Radiobutton_julian_or_gregorian, value=2, command = command_for_Radiobutton).grid(column=2, row=1)
-        R3 = Radiobutton(Rd_PW, text="מתחלף באוקטובר 1582", variable=Radiobutton_julian_or_gregorian, value=3, command = command_for_Radiobutton).grid(column=3, row=1)
+        R1 = Radiobutton(Rd_PW, text=reverse("גרגוריאני"), variable=Radiobutton_julian_or_gregorian, value=1, command = command_for_Radiobutton).grid(column=1, row=1)
+        R2 = Radiobutton(Rd_PW, text=reverse("יוליאני"), variable=Radiobutton_julian_or_gregorian, value=2, command = command_for_Radiobutton).grid(column=2, row=1)
+        R3 = Radiobutton(Rd_PW, text=reverse("מתחלף באוקטובר 1582"), variable=Radiobutton_julian_or_gregorian, value=3, command = command_for_Radiobutton).grid(column=3, row=1)
 
         Rd_PW.pack()
 
@@ -8294,7 +8364,7 @@ def date_converter():
         greg_year_cb = ttk.Combobox(greg_date, textvariable=Entry_greg_year, width=5, state=state1,values=[*greg_years],font="narkisim 16",justify='center',)
         greg_year_cb.grid(column=4, row=1)
 
-        Label(greg_date, text="שנה").grid(column=4, row=2)
+        Label(greg_date, text=reverse("שנה")).grid(column=4, row=2)
 
         Entry_greg_month = StringVar(converter)
         Spinbox(
@@ -8311,7 +8381,7 @@ def date_converter():
             font="narkisim 17",
             justify='center'
         ).grid(column=3, row=1)
-        Label(greg_date, text="חודש").grid(column=3, row=2)
+        Label(greg_date, text=reverse("חודש")).grid(column=3, row=2)
 
         Entry_greg_day = StringVar(converter)
         Spinbox(
@@ -8328,14 +8398,14 @@ def date_converter():
             font="narkisim 17",
             justify='center'
         ).grid(column=2, row=1)
-        Label(greg_date, text="יום").grid(column=2, row=2)
+        Label(greg_date, text=reverse("יום")).grid(column=2, row=2)
 
         Label(greg_date, text="").grid(column=1, row=1)
 
         # האם מדובר בתאריך יוליאני או גרגוריאני
         Entry_julian_or_gregorian = StringVar(converter)
         Entry(greg_date, width=9, textvariable=Entry_julian_or_gregorian,justify='center',state = 'readonly', font="narkisim 17").grid(column=0, row=1)
-        Label(greg_date, text="סוג לוח").grid(column=0, row=2)
+        Label(greg_date, text=reverse("סוג לוח")).grid(column=0, row=2)
         greg_date.pack()
 
 
@@ -8349,15 +8419,15 @@ def date_converter():
         bonus = cu_PanedWindow(converter)
 
         Entry_weekday = StringVar(converter)
-        Label(bonus, text="יום בשבוע", font="david 12 bold").grid(column=2, row=1)
+        Label(bonus, text=reverse("יום בשבוע"), font="david 12 bold").grid(column=2, row=1)
         Entry(bonus, width=10, state='readonly', textvariable=Entry_weekday,justify='center', font="narkisim 17").grid(column=2, row=2)
         
         Julian_Gregorian_day_difference = StringVar(converter)
-        Label(bonus, text="      הפרש הימים בלוח     \n      גרגוריאני➞יוליאני      ", font="david 12 bold", justify='center').grid(column=1, row=1)
+        Label(bonus, text=reverse("      הפרש הימים בלוח     \n      גרגוריאני➞יוליאני      "), font="david 12 bold", justify='center').grid(column=1, row=1)
         Entry(bonus, width=5, state='readonly', textvariable=Julian_Gregorian_day_difference,justify='center', font="narkisim 17").grid(column=1, row=2)
 
         Entry_JD = StringVar(converter)
-        Label(bonus, text="JD יום יוליאני", font="david 12 bold").grid(column=0, row=1)
+        Label(bonus, text=reverse("JD יום יוליאני"), font="david 12 bold").grid(column=0, row=1)
         Entry(bonus, width=10, state='readonly', textvariable=Entry_JD, justify='center', font="narkisim 17").grid(column=0, row=2)
 
         bonus.pack()
@@ -8368,7 +8438,7 @@ def date_converter():
         input_heb = cu_PanedWindow(converter)
 
         # כפתור להיום
-        Button(input_heb, text="היום\nלפי המחשב", font = font_buttons, command=set_date_time_now).grid(column=5, row=1)
+        Button(input_heb, text=reverse("היום\nלפי המחשב"), font = font_buttons, command=set_date_time_now).grid(column=5, row=1)
         
         Label(input_heb, text="   ", font="david 18 bold").grid(column=2, row=1)
         
@@ -8378,7 +8448,7 @@ def date_converter():
             clipboard.copy(C)
         
         # כפתור להעתקת תאריכים
-        Button(input_heb,  text="העתק\nתאריכים", font = font_buttons, command=copy_dates).grid(column=1, row=1)
+        Button(input_heb,  text=reverse("העתק\nתאריכים"), font = font_buttons, command=copy_dates).grid(column=1, row=1)
 
         Label(input_heb, text="   ", font="david 18 bold").grid(column=4, row=1)
         
@@ -8400,11 +8470,11 @@ def date_converter():
                 # הכנסת התאריך לתוך החלון הראשי של התוכנה
                 set_date_time(ssd)
             except ValueError:
-                    tkMessageBox.showinfo( "שגיאה", "תאריך לפני שנת 1 לסה''נ או תאריך עברי שאינו קיים, אינם נתמכים")
+                    tkMessageBox.showinfo( reverse("שגיאה"), reverse("תאריך לפני שנת 1 לסה''נ או תאריך עברי שאינו קיים, אינם נתמכים"))
 
         
         # כפתור להעברת התאריך הלועזי המקביל לתאריך העברי לתוך החלון הראשי של התוכנה
-        Button(input_heb, text="המר תאריך עברי ללועזי\nלתוך התוכנה הראשית", font = font_buttons, command=set_hebdate_to_cu_clock).grid(column=3, row=1)
+        Button(input_heb, text=reverse("המר תאריך עברי ללועזי\nלתוך התוכנה הראשית"), font = font_buttons, command=set_hebdate_to_cu_clock).grid(column=3, row=1)
 
         input_heb.pack()
 
@@ -8413,13 +8483,13 @@ def date_converter():
         #C1_before_24 = IntVar(converter)
         #Checkbutton(converter, text = "לצורך המרת תאריכים מדוייקת \nסמנו אם המאורע התרחש בין תחילת הלילה לשעה 24:00", variable = C1_before_24, onvalue = 1, offvalue = 0, height=1, font = "david 12 bold",command = greg_to_heb).pack()
         Label(converter, text="", font="david 12 bold").pack()
-        Label(converter, text="שימו לב! בכל יום, מתחילת הלילה ועד לשעה 24:00", font="david 12 bold").pack()
-        Label(converter, text="התאריך העברי מאוחר ביום אחד מהתאריך הלועזי", font="david 12 bold").pack()
-        Label(converter, text="\nשימו לב! תחילת שימוש בלוחות קבועים (שנים לספירה הנוצרית)", font="david 12 bold").pack()
-        Label(converter, text="יוליאני: 45-, עברי: בערך 360, גרגוריאני: 1582", font="david 12 bold").pack()
-        Label(converter, text="\nשימו לב! בתוכנה זו אין שנה לועזית אפס, כשיטה המקובלת בהיסטוריה", font="david 12 bold").pack()
-        Label(converter, text="אך יום יוליאני הוא כשיטה המקובלת באסטרונומיה, שקיימת שנה אפס", font="david 12 bold").pack()
-        Label(converter, text="לכן בשנות מינוס יש פער של שנה בין היום היוליאני לבין התאריך הלועזי", font="david 12 bold").pack()
+        Label(converter, text=reverse("שימו לב! בכל יום, מתחילת הלילה ועד לשעה 24:00"), font="david 12 bold").pack()
+        Label(converter, text=reverse("התאריך העברי מאוחר ביום אחד מהתאריך הלועזי"), font="david 12 bold").pack()
+        Label(converter, text=reverse("\nשימו לב! תחילת שימוש בלוחות קבועים (שנים לספירה הנוצרית)"), font="david 12 bold").pack()
+        Label(converter, text=reverse("יוליאני: 45-, עברי: בערך 360, גרגוריאני: 1582"), font="david 12 bold").pack()
+        Label(converter, text=reverse("\nשימו לב! בתוכנה זו אין שנה לועזית אפס, כשיטה המקובלת בהיסטוריה"), font="david 12 bold").pack()
+        Label(converter, text=reverse("אך יום יוליאני הוא כשיטה המקובלת באסטרונומיה, שקיימת שנה אפס"), font="david 12 bold").pack()
+        Label(converter, text=reverse("לכן בשנות מינוס יש פער של שנה בין היום היוליאני לבין התאריך הלועזי"), font="david 12 bold").pack()
         #Label(converter, text="\nשימו לב! תאריכים לועזיים בשנות מינוס עלולים ללקות בחוסר דיוק", font="david 12 bold").pack()
 
 
@@ -8518,8 +8588,10 @@ if __name__ == '__main__':
     
     # הגדרת האייקון לתוכנה וזה משפיע גם על כל החלונות האחרים בתוכנה
     cu_icon_path = resource_path('cu_icon.png')
-    cu_icon = Tkinter.PhotoImage(file=cu_icon_path)
-    ws.iconphoto(True, cu_icon)
+    if os.path.isfile(cu_icon_path):
+        cu_icon = PhotoImage(file=cu_icon_path)
+        ws.iconphoto(True, cu_icon)
+
       
     # אם רוצים לעשות שהחלון הזה יהיה מעל כל החלונות שבמחשב. זה חשוב בעיקר כאשר רזולוציית המסך מוגדלת
     #ws.attributes('-topmost',True)
@@ -8566,11 +8638,8 @@ if __name__ == '__main__':
     
     # באיזו שפה התוכנה תיטען
     
-    # מחזיר טרו אם מערכת ההפעלה של המשתמש היא בעברית
-    is_system_hebrew = (locale.getlocale()[0] or '').lower().startswith('he')
-    
     # הגדרת הכתובת עבור ברירת מחדל של השפה הראשית לתוכנה
-    language_path = rf"{cu_dir_path}\cu_language.txt"
+    language_path = os.path.join(cu_dir_path, "cu_language.txt")
     
     # אם יש קובץ להגדרת שפת ברירת המחדל של התוכנה
     if os.path.exists(language_path):
@@ -9348,4 +9417,5 @@ if __name__ == '__main__':
     #---------------------------------------------
     # בין אם יש רישיון ובין אם אין רישיון חייבת להיות לולאה אינסופית על החלון הראשי כך
     ws.mainloop()
+
 
