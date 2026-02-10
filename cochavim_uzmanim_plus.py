@@ -426,6 +426,12 @@ import subprocess
 # עשיית פעולות במקביל בלי לתקוע את כל התוכנה. משמש בעיקר בהורת קבצים
 import threading
 
+# לשמירת מילון הגדרות
+import json
+
+# לרוורס עברית בלינוקס
+import re
+
 # בדיקת תהליכים פעילים וסגירתם
 #import psutil
 
@@ -437,14 +443,7 @@ RTL = "\u200F"
 # מחזיר טרו אם מערכת ההפעלה של המשתמש היא בעברית
 is_system_hebrew = (locale.getlocale()[0] or '').lower().startswith('he')
 
-
-# פונקצייה מאוד חשובה להצגת עברית בלינוקס
-def reverse(text):
-    return text if is_windows else text[::-1]
-
-
-import re
-
+# פונקצייה מאוד חשובה להצגת עברית בלינוקס. היא הופכת את הטקסט בעברית כדי שיוצג נכון
 def reverse(text, for_title = False):
     BRACKETS_MAP = str.maketrans({
         '(': ')', ')': '(', 
@@ -575,7 +574,7 @@ cu_screenheight = 768
 cu_scaling = 1.32 # כנראה המקורי היה 1.3 אבל למעשה בחרתי 1.32 כי המקורי עשה בעיות וזה כנראה פועל היטב במחשבים גדולים
 
 # תאריך גרסת התוכנה הראשית
-cu_version_date = dt.date(2026,2,8)
+cu_version_date = dt.date(2026,2,10)
 
 # פונקצייה שמחזירה שם יחד עם מיקום של קובץ בתיקיית תוכנת כוכבים וזמנים
 '''
@@ -1670,8 +1669,10 @@ def get_defaults():
     
     # השגיאה המתקבלת כאשר טווח השנים לא קיים באפמאריס
     #skyfield.errors.EphemerisRangeError
+    
+    settings_path = os.path.join(cu_dir_path, "cu_settings.json")
 
-    return eph, eph_440, eph_441s, state1, input_years_range, locations_path, locations_edited_path, stars_path, cu_dir_path, is_installed
+    return eph, eph_440, eph_441s, state1, input_years_range, locations_path, locations_edited_path, stars_path, settings_path, cu_dir_path, is_installed
 
 
 # פונקצייה עם כמה אופציות לעריכת שינויים בקובץ המיקומים הערוך
@@ -1696,7 +1697,7 @@ def edit_locations_file(location = "NONE"):
     else:
     
         # קבלת הגדרות ברירות מחדל עבור התוכנה באמצעות פונקצייה
-        _, _, _, _, _, locations_path,locations_edited_path,_, cu_dir_path,_ = get_defaults()
+        _, _, _, _, _, locations_path,locations_edited_path,_, _, cu_dir_path,_ = get_defaults()
         
         current_city = reverse(city.get()) # חייבים לעשות ככה כדי לעשות רוורס בחזרה בלינוקס 
         
@@ -2016,7 +2017,7 @@ def install_cu():
     # הנתיב החדש לקובץ ההפעלה של התוכנה המותקנת
     cu_dir_exe_new_path = os.path.join(cu_dir_path, "cu_installation", cochavim_uzmanim_plus_dir_filename)
     # שם קיצור הדרך
-    shortcut_name = reverse("כוכבים וזמנים גרסה מותקנת") if is_heb_locale else "cochavim uzmanim installed version"
+    shortcut_name = "כוכבים וזמנים גרסה מותקנת" if is_heb_locale else "cochavim uzmanim installed version" # בכוונה לא לעשות כאן רוורס לעברית כי זה לקובץ חיצוני
     # קריאה לפונקציית יצירת קיצורי הדרך שהוגדרה לעיל
     create_shortcut(cu_dir_exe_new_path, shortcut_name, is_heb_locale)
   
@@ -2138,30 +2139,15 @@ def open_subprocess():
     else:
         tkMessageBox.showinfo(reverse("שגיאה"), reverse("כרגע יש שלוש חלונות פעילים שנפתחו מתוך התוכנה\nסגור אחד מהם ונסה שנית"))
 
-
-# פונקצייה לשינוי שפת ברירת המחדל של התוכנה
-def change_default_language():
-    
-    # הצהרה על משתנה גלובלי שנותן את המידע מהי שפת התוכנה הנוכחית
-    # שפת התוכנה הנוכחית תמיד זהה לשפה שכתובה בקובץ שפת ברירת מחדל
-    global is_heb_locale
-    
-    # הגדרת הכתובת עבור קובץ ברירת מחדל של השפה הראשית לתוכנה
-    language_path = os.path.join(cu_dir_path, "cu_language.txt")
-    
-    # שאילה האם המשתמש בטוח שברצונו לשנות את מיקום ברירת המחדל של התוכנה
+# פונקצייה נורא חשובה שעושה ריסטרט לכל התוכנה
+def restart_app():
     if is_heb_locale:
-        msg_box = tkinter.messagebox.askquestion(reverse('אישור שינוי שפת ברירת מחדל של התוכנה'),reverse('\nהאם אתה בטוח שברצונך לשנות את שפת ברירת המחדל?\nאם כן, התוכנה תיסגר ויש להפעילה מחדש'),icon='warning', default="no")
+        msg_box = tkinter.messagebox.askquestion(reverse("הפעלה מחדש"),reverse('\nהאם ברצונך שהתוכנה תופעל מחדש?'),icon='warning', default="no")
     else:
-        msg_box = tkinter.messagebox.askquestion('Confirm to change the software default language','\nAre you sure you want to change the software default language?\nIf so, the software will close and must be restarted',icon='warning', default="no")
-    
-    # אם המשתמש ענה שהוא רוצה לשנות
+        msg_box = tkinter.messagebox.askquestion('restart app','\nAre you sure to restart app?',icon='warning', default="no")
     if msg_box == 'yes':
-        # פתיחת קובץ ברירת המחדל של השפה וכתיבת המילה עברית או אנגלית לפי ההיפך ממה שהתוכנה כרגע
-        with open(language_path, 'w', encoding=cu_encod, newline='') as newFile:
-            newFile.write("English" if is_heb_locale else "Hebrew" )
-        # כיבוי התוכנה כדי שכשיפעילו אותה מחדש היא תידלק בשפה החדשה כי אי אפשר לשנות שפה תוך כדי שהתוכנה פועלת
-        ws.destroy()  
+        app = sys.executable
+        os.execl(app, app, *sys.argv)
         
 
 # פונקצייה לקבלת המיקומים וכל המידע עליהם
@@ -2481,7 +2467,7 @@ hesberim = [
         [reverse("sgbmzm@gmail.com"), ""],
         ["כל הזכויות שמורות - להלן הסברים", ""],
         
-        [" התאריך העברי מתחלף בשקיעה", ""],
+        [" התאריך העברי מתחלף בשקיעה (גרא)", ""],
         
         [" מתחת גרא/מגא:  דקות בשעה זמנית", ""],
         [" מתחת שמש/ירח:  אזימוט שמש/ירח", ""],
@@ -2538,7 +2524,7 @@ current_screen_zmanim = 0.0
 current_screen_zmanim_with_clocks = 0.0
 
 
-def halacha_watch():
+def halacha_clock():
     
     # אם כפתור הפעלת החישובים לא פעיל, יש לצאת מייד מהפונקצייה
     if C1.get() != 1:
@@ -2578,8 +2564,9 @@ def halacha_watch():
     
     # חובה!!!!!!!!! הפעלת חישוב רציף
     # אם לא עושים את זה זה שמחזיר את הזמן שיש עכשיו בשעון הידני
+    is_test = False # True אם רוצים שלא יתעדכן אלא יציג מה שיש בשעון הראשי
     
-    if choice_time.get() != "עכשיו מתעדכן":
+    if choice_time.get() != "עכשיו מתעדכן" and not is_test:
         choice_time.set("עכשיו מתעדכן")
         # חובה! קריאה לפונקציית כל החישובים כדי שתדע לחזור שוב ושוב על החישובים
         all_calculations()
@@ -2617,37 +2604,51 @@ def halacha_watch():
     # צבע מגנטה עמום יותר
     hw_dim_magenta = "#AA55AA"
     
+    add_labels = settings_dict["halacha_clock_labels"]
+    
     # איזור כותרת
-    title_id = canvas.create_text(160 * scale, 12 * scale, text="", fill=hw_green, font=scaled_font("miriam", 12, "bold"))
-
+    canvas.create_text(160 * scale, 10 * scale, text=reverse("שעון ההלכה                                      כוכבים וזמנים"), fill="turquoise", font=scaled_font("miriam", 10, "bold"))
+    city_id = canvas.create_text(160 * scale, 10 * scale, text="", fill=hw_green, font=scaled_font("miriam", 12, "bold"))
     # איזור תאריך עברי
     heb_date_rect_id = canvas.create_rectangle(0, 21 * scale, screen_width, 38 * scale, fill="black")
     heb_date_id = canvas.create_text(160 * scale, 28 * scale, text="", fill="white", font=scaled_font("miriam", 14, "bold"))
     holiday_id = canvas.create_text(160 * scale, 40 * scale, text="", fill=hw_dim_magenta, font=scaled_font("miriam", 8, "bold"))
-    canvas.create_line(0, 45 * scale, screen_width, 45 * scale, fill="yellow")
+    canvas.create_line(0, 43 * scale, screen_width, 43 * scale, fill="yellow")
 
     # איזור שעה זמנית גרא ומגא
-    canvas.create_text(300 * scale, 53 * scale, text=reverse("גרא") if is_heb_locale else "Gra", fill="white", font=scaled_font("miriam", 13))
-    gra_method_id = canvas.create_text(300 * scale, 63 * scale, text="", fill=hw_dim_magenta, font=scaled_font("miriam", 5, "bold"))
-    minutes_in_gra_temporal_hour_id = canvas.create_text(300 * scale, 73 * scale, text="", fill="turquoise", font=scaled_font("miriam", 13))
-    gra_temporal_hour_id = canvas.create_text(210 * scale, 65 * scale, text="", fill=hw_green, font=scaled_font("miriam", 30, "bold"))
+    canvas.create_text(300 * scale, 51 * scale, text=reverse("גרא"), fill="white", font=scaled_font("miriam", 13))
+    if add_labels:
+        canvas.create_text(300 * scale, 77 * scale, text=reverse("דקות לשעה"), fill="turquoise", font=scaled_font("miriam", 4))
+    gra_title_id = canvas.create_text(201 * scale, 47 * scale, text=reverse(""), fill="turquoise", font=scaled_font("miriam", 4))
+    gra_method_id = canvas.create_text(300 * scale, 60 * scale, text="", fill=hw_dim_magenta, font=scaled_font("miriam", 5))
+    minutes_in_gra_temporal_hour_id = canvas.create_text(300 * scale, 70 * scale, text="", fill="turquoise", font=scaled_font("miriam", 10))
+    gra_temporal_hour_id = canvas.create_text(208 * scale, (67 if add_labels else 62) * scale, text="", fill=hw_green, font=scaled_font("miriam", 30, "bold"))
     
 
-    canvas.create_text(120 * scale, 53 * scale, text=reverse("מגא") if is_heb_locale else "Mga", fill="white", font=scaled_font("miriam", 13))
-    mga_method_id = canvas.create_text(120 * scale, 63 * scale, text="", fill=hw_dim_magenta, font=scaled_font("miriam", 5, "bold"))
-    minutes_in_mga_temporal_hour_id = canvas.create_text(120 * scale, 73 * scale, text="", fill="turquoise", font=scaled_font("miriam", 13))
-    mga_temporal_hour_id = canvas.create_text(53 * scale, 65 * scale, text="", fill=hw_green, font=scaled_font("miriam", 18, "bold"))
+    canvas.create_text(115 * scale, 51 * scale, text=reverse("מגא"), fill="white", font=scaled_font("miriam", 13))
+    if add_labels:
+        canvas.create_text(115 * scale, 77 * scale, text=reverse("דקות לשעה"), fill="turquoise", font=scaled_font("miriam", 4))
+    mga_title_id = canvas.create_text(50 * scale, 47 * scale, text=reverse(""), fill="turquoise", font=scaled_font("miriam", 4))
+    mga_method_id = canvas.create_text(115 * scale, 60 * scale, text="", fill=hw_dim_magenta, font=scaled_font("miriam", 5))
+    minutes_in_mga_temporal_hour_id = canvas.create_text(115 * scale, 70 * scale, text="", fill="turquoise", font=scaled_font("miriam", 10))
+    mga_temporal_hour_id = canvas.create_text(50 * scale, (65 if add_labels else 60) * scale, text="", fill=hw_green, font=scaled_font("miriam", 20, "bold"))
     canvas.create_line(0, 80 * scale, screen_width, 80 * scale, fill="yellow")
 
     # איזור מידע על שמש וירח
-    canvas.create_text(300 * scale, 90 * scale, text=reverse("שמש") if is_heb_locale else "Sun", fill="white", font=scaled_font("miriam", 13))
-    sun_az_id = canvas.create_text(300 * scale, 108 * scale, text="", fill="turquoise", font=scaled_font("miriam", 13))
-    sun_alt_id = canvas.create_text(210 * scale, 102 * scale, text="", fill=hw_green, font=scaled_font("miriam", 30, "bold"))
+    canvas.create_text(300 * scale, 90 * scale, text=reverse("שמש"), fill="white", font=scaled_font("miriam", 13))
+    sun_az_id = canvas.create_text(300 * scale, 110 * scale, text="", fill="turquoise", font=scaled_font("miriam", 10))
+    if add_labels:
+        canvas.create_text(200 * scale, 85 * scale, text=reverse("גובה מהאופק:"), fill="turquoise", font=scaled_font("miriam", 4))
+        canvas.create_text(300 * scale, 102 * scale, text=reverse("אַזִימוּט:"), fill="turquoise", font=scaled_font("miriam", 4))
+    sun_alt_id = canvas.create_text(209 * scale, (105 if add_labels else 101) * scale, text="", fill=hw_green, font=scaled_font("miriam", 30, "bold"))
 
-    moon_name_id = canvas.create_text(120 * scale, 90 * scale, text=reverse("ירח") if is_heb_locale else "Moon", fill="white", font=scaled_font("miriam", 13))
-    moon_az_id = canvas.create_text(120 * scale, 108 * scale, text="", fill="turquoise", font=scaled_font("miriam", 13))
-    moon_alt_id = canvas.create_text(53 * scale, 93 * scale, text="", fill=hw_green, font=scaled_font("miriam", 20, "bold"))
-    moon_phase_id = canvas.create_text(45 * scale, 111 * scale, text="", fill="turquoise", font=scaled_font("miriam", 15, "bold"))
+    moon_name_id = canvas.create_text(115 * scale, 90 * scale, text=reverse("ירח"), fill="white", font=scaled_font("miriam", 13))
+    if add_labels:
+        canvas.create_text(114 * scale, 102 * scale, text=reverse("אַזִימוּט:"), fill="turquoise", font=scaled_font("miriam", 4))
+        canvas.create_text(80 * scale, 112 * scale, text=reverse("מסלול \nחודשי:"), fill="turquoise", font=scaled_font("miriam", 4))
+    moon_az_id = canvas.create_text(115 * scale, 110 * scale, text="", fill="turquoise", font=scaled_font("miriam", 10))
+    moon_alt_id = canvas.create_text(50 * scale, 94 * scale, text="", fill=hw_green, font=scaled_font("miriam", 20, "bold"))
+    moon_phase_id = canvas.create_text(40 * scale, 113 * scale, text="", fill="turquoise", font=scaled_font("miriam", 14, "bold"))
     canvas.create_line(0, 120 * scale, screen_width, 120 * scale, fill="yellow")
 
     # איזור מתחלף: זמנים בשעון רגיל ושעונים נוספים
@@ -2690,8 +2691,10 @@ def halacha_watch():
         hc_clock_gra = print_temporal_hour_GRA.get()
         hc_minutes_gra = print_minutes_in_temporal_hour_GRA.get()
         
-        hc_gra_method = f"{Halachic_method_GRA.get()}°"
-        hc_mga_method = f"{Halachic_method_MGA.get()}°"
+        hc_gra_method = f"({Halachic_method_GRA.get()}°)"
+        hc_mga_method = f"({Halachic_method_MGA.get()}°)"
+        hc_gra_day = f":{print_day_or_night_GRA.get()}{reverse('שעון שעה זמנית - ')}"
+        hc_mga_day = f":{print_day_or_night_MGA.get()}{reverse('שעון שעה זמנית - ')}"
         
         # גובה ואזימוט שמש וירח ואחוז מהמסלול של הירח
         #hc_sun_alt = sun_alt.get()
@@ -2715,9 +2718,7 @@ def halacha_watch():
 
         
         # עדכון שורת הכותרת
-        voltage_string = "**%"
-        title = f"  {voltage_string} - {reverse('שעון ההלכה') if is_heb_locale else 'halacha whtch'} - {hc_location_name}"
-        canvas.itemconfig(title_id, text=title)
+        canvas.itemconfig(city_id, text=hc_location_name)
 
         
         # איזור תאריך עברי כולל צבע מתאים לימי חול ולשבתות וחגים
@@ -2753,6 +2754,9 @@ def halacha_watch():
         canvas.itemconfig(minutes_in_gra_temporal_hour_id, text=hc_minutes_gra)
         canvas.itemconfig(gra_method_id, text=hc_gra_method)
         canvas.itemconfig(gra_temporal_hour_id, text=hc_clock_gra)
+        if add_labels:
+            canvas.itemconfig(gra_title_id, text=hc_gra_day)
+            canvas.itemconfig(mga_title_id, text=hc_mga_day)
         canvas.itemconfig(minutes_in_mga_temporal_hour_id, text=hc_minutes_mga)
         canvas.itemconfig(mga_method_id, text=hc_mga_method)
         canvas.itemconfig(mga_temporal_hour_id, text=hc_clock_mga)
@@ -2765,14 +2769,6 @@ def halacha_watch():
         canvas.itemconfig(moon_alt_id, text=hc_body_alt)
         canvas.itemconfig(moon_phase_id, text=hc_moon_phase_percent)
             
-        
-        ### הכנה לשורת שעונים. הרווחים הם בכוונה לצורך מירכוז בשעון ההלכה הפיזי
-        clocks_string = f"{hc_magrab}  {hc_lmt}  {hc_lsot}  {hc_utc}"
-        #clocks_string = f"גריניץ  |  מקומי  |  מקומי-ממוצע  |  מהשקיעה"
-        
-        # משתנה ששומר מערך זמנים שבו אחרי כל שורת זמן יש שורת שעונים וכך הזמנים והשעונים מוצגים לסירוגין
-        zmanim_with_clocks = [item for zman_line in zmanim_list for item in (zman_line, [reverse(clocks_string)])]
-      
 
         global current_screen_hesberim, current_screen_zmanim, current_screen_zmanim_with_clocks
         
@@ -2785,11 +2781,17 @@ def halacha_watch():
         canvas.itemconfig(info_id, text=CCC if is_heb_locale else "information") # אפשר להשמיט את fill="violet" ואז הטקסט יהיה לבן כמו שהוגדר לעיל
        
                 
-        
+        ### הכנה לשורת שעונים. הרווחים הם בכוונה לצורך מירכוז בשעון ההלכה הפיזי
+        clocks_string = f"{hc_magrab}  {hc_lmt}  {hc_lsot}  {hc_utc}"
+        #clocks_string = f"גריניץ  |  מקומי  |  מקומי-ממוצע  |  מהשקיעה"
+        # משתנה ששומר מערך זמנים שבו אחרי כל שורת זמן יש שורת שעונים וכך הזמנים והשעונים מוצגים לסירוגין
+        zmanim_with_clocks = [item for zman_line in zmanim_list for item in (zman_line, [reverse(clocks_string)])]
         zmanim_with_clocks_string = reverse(zmanim_with_clocks[int(current_screen_zmanim_with_clocks)][0])
-    
+        zmanim_string = reverse(zmanim_list[int(current_screen_zmanim)][0])
         
-        canvas.itemconfig(zmanim_with_clocks_id, text=zmanim_with_clocks_string)
+        # מציג בשורה את מה שכתוב בהגדרות שצריך להציג. ברירת המחדל היא זמנים עם שעונים
+        d_dict = {"zmanim_with_clocks": zmanim_with_clocks_string, "zmanim": zmanim_string, "clocks": clocks_string}
+        canvas.itemconfig(zmanim_with_clocks_id, text=d_dict.get(settings_dict["zmanim_mode"], zmanim_with_clocks_string))
         
         
         # קידום בשלב אחד עבור הגדרת השרוה הבאה בסיבוב הבא
@@ -3771,7 +3773,7 @@ def print_astro_calculations(time,location,location_timezone):
     # משתנים גלובליים של נתונים עבור שעון ההלכה
     global hc_sun_alt, hc_sun_az
     hc_sun_alt = f"{round(s_alt, 3) :2.3f}°"
-    hc_sun_az = f"{round(s_az)}°"
+    hc_sun_az = f"{round(s_az, 1) :2.1f}°"
     #########################################
     
     # הכנסת החישובים לתוך התאים המתאימים
@@ -3831,7 +3833,7 @@ def print_astro_calculations(time,location,location_timezone):
     # משתנים גלובליים של נתונים עבור שעון ההלכה
     global hc_body_alt, hc_body_az
     hc_body_alt = f"{round(alt, 3) :2.3f}°"
-    hc_body_az = f"{round(az)}°"
+    hc_body_az = f"{round(az, 1) :2.1f}°"
     ####################################################
 
     
@@ -8522,11 +8524,218 @@ def date_converter():
 ####################################################################################################################
 ####################################################################################################################
 
+# חיפוש אינדקס של "ירושלים" או החזרת 0 אם לא נמצא
+jerusalem_index = 0#([i for i, loc in enumerate(locations) if loc["heb_name"] == "ירושלים"] or [0])[0]
+
+# -----------------------------
+# הגדרות ברירת מחדל
+# -----------------------------
+settings_dict = {
+    "rise_set_deg": -0.833,
+    "mga_deg": -16,
+    "hacochavim_deg": -4.61,
+    "misheiacir_deg": -10.5,
+    "hesberim_mode": "hesberim",
+    "zmanim_mode": "zmanim_with_clocks",
+    "default_location_index": jerusalem_index,
+    "is_language_hebrew": None,
+    "is_zoomed_screen": False,
+    "start_halacha_clock": False,
+    "halacha_clock_labels": True
+}
+
+default_settings_dict = dict(settings_dict)
+
+
+# -----------------------------
+# טעינת הגדרות מקובץ
+# -----------------------------
+def load_settings_dict_from_file():
+    global settings_dict, settings_path
+    try:
+        with open(settings_path, "r", encoding="utf-8") as f:
+            loaded_settings = json.load(f)
+
+        # עדכון ההגדרות עם הערכים מהקובץ, בלי המרה מיותרת
+        for key, val in loaded_settings.items():
+            settings_dict[key] = val
+        print(settings_dict)
+        print("הגדרות נטענו בהצלחה מתוך הקובץ")
+    except FileNotFoundError:
+        print("קובץ ההגדרות לא נמצא, נשמרות ההגדרות ברירת המחדל")
+        settings_dict.update(default_settings_dict)
+    except Exception as e:
+        print(f"שגיאה בטעינת הקובץ: {e}")
+        settings_dict.update(default_settings_dict)
+
+# -----------------------------
+# שמירת הגדרה בודדת
+# -----------------------------
+def save_setting(key, value):
+    global settings_dict, settings_path
+    settings_dict[key] = value
+    with open(settings_path, "w", encoding="utf-8") as f:
+        json.dump(settings_dict, f, ensure_ascii=False, indent=2)
+
+# -----------------------------
+# שחזור ברירת מחדל
+# -----------------------------
+def to_default_settings():
+    global settings_dict
+    settings_dict.update(default_settings_dict)
+    with open(settings_path, "w", encoding="utf-8") as f:
+        json.dump(settings_dict, f, ensure_ascii=False, indent=2)
+    tkMessageBox.showinfo(reverse("שיחזור הגדרות"), reverse("הגדרות ברירת מחדל שוחזרו בהצלחה!"))
+    #ws.destroy()
+    restart_app()
+
+# -----------------------------
+# עריכת הגדרות
+# -----------------------------
+# -----------------------------
+# עריכת הגדרות
+# -----------------------------
+def edit_settings():
+    global is_heb_locale, settings_dict, settings_path
+
+    # -----------------------------
+    # מילון ערכים להצגה בלבד
+    # -----------------------------
+    value_labels = {
+        True: "כן" if is_heb_locale else "yes",
+        False: "לא" if is_heb_locale else "no",
+        None: "ברירת מחדל" if is_heb_locale else "default"
+    }
+
+    # -----------------------------
+    # שמות בעברית (עם reverse להצגה בלבד)
+    # -----------------------------
+    names_hebrew = {
+        "rise_set_deg": reverse("° שיטת זריחה ושקיעה"),
+        "mga_deg": reverse("° שיטת מגא ועלות"),
+        "hacochavim_deg": reverse("° שיטת צאת הכוכבים"),
+        "misheiacir_deg": reverse("° שיטת משיכיר"),
+        "hesberim_mode": reverse("מצב תצוגה"),
+        "zmanim_mode": reverse("מצב זמנים"),
+        "is_language_hebrew": reverse("התוכנה תוצג בעברית"),
+        "is_zoomed_screen": reverse("מסך מוגדל"),
+        "start_halacha_clock": reverse("הפעלת שעון ההלכה בכניסה לתוכנה"),
+        "halacha_clock_labels": reverse("תוויות הסבר בשעון ההלכה"),
+    }
+
+    # -----------------------------
+    # מצבי הצגה בעברית
+    # -----------------------------
+    modes_hebrew = {
+        "hesberim": reverse("הסברים"),
+        "zmanim": reverse("זמנים"),
+        "clocks": reverse("שעונים"),
+        "zmanim_with_clocks": reverse("זמנים עם שעונים"),
+    }
+
+    # מיפוי הפוך: ערך עברי -> ערך פנימי
+    reverse_modes = {v: k for k, v in modes_hebrew.items()}
+
+    # -----------------------------
+    edit_win = Toplevel(ws)
+    edit_win.title("עריכת הגדרות" if is_heb_locale else "Edit Settings")
+    Label(edit_win,text=reverse("עריכת הגדרות ושיטות זמנים") if is_heb_locale else "Edit Settings and Time Methods",font=("Arial", 12, "bold")).pack()
+    Label(edit_win,text=reverse("הערכים המוצגים הם הערכים הנוכחיים") if is_heb_locale else "The displayed values are the current settings",font=("Arial", 10)).pack()
+
+    options_to_edit = {
+        "rise_set_deg": [0, -0.833],
+        "mga_deg": [-16, -19.75, 222],
+        "hacochavim_deg": [-4.61, -3.61, -6, -8.5],
+        "misheiacir_deg": [-10.5, -10],
+        "hesberim_mode": ["hesberim"],
+        "zmanim_mode": ["zmanim", "clocks", "zmanim_with_clocks"],
+        "default_location_index": [0],
+        "is_language_hebrew": [None, True, False],
+        "is_zoomed_screen": [True, False],
+        "start_halacha_clock": [True, False],
+        "halacha_clock_labels": [True, False],
+    }
+
+    entries = {}
+
+    # -----------------------------
+    def save_changes():
+        new_settings = {}
+        for key, combo in entries.items():
+            # קבל את האינדקס שנבחר ב-ComboBox
+            selected_index = combo.current()
+
+            if key in ["hesberim_mode", "zmanim_mode"]:
+                # שמירה של הערך הפנימי לפי האינדקס
+                val = options_to_edit[key][selected_index]
+            elif key in ["is_language_hebrew", "is_zoomed_screen", "start_halacha_clock", "halacha_clock_labels"]:
+                val = options_to_edit[key][selected_index]
+            elif key in ["rise_set_deg", "mga_deg", "hacochavim_deg", "misheiacir_deg", "default_location_index"]:
+                val_str = combo.get()
+                try:
+                    val = float(val_str)
+                except (ValueError, TypeError):
+                    val = val_str
+            else:
+                val = combo.get()
+
+            new_settings[key] = val
+
+        settings_dict.update(new_settings)
+        with open(settings_path, "w", encoding="utf-8") as f:
+            json.dump(settings_dict, f, ensure_ascii=False, indent=2)
+
+        tkMessageBox.showinfo(
+            reverse("נשמר") if is_heb_locale else "Saved",
+            reverse("ההגדרות נשמרו בהצלחה!") if is_heb_locale else "Settings were saved successfully!"
+        )
+        edit_win.destroy()
+        restart_app()
+
+    # -----------------------------
+    for key, val in settings_dict.items():
+        if key not in options_to_edit:
+            continue
+
+        frame = ttk.Frame(edit_win)
+        frame.pack(fill="x", padx=10, pady=5)
+        display_name = names_hebrew.get(key, key) if is_heb_locale else key
+        ttk.Label(frame, text=display_name, width=25).pack(side="right")
+
+        # בניית רשימת הערכים להצגה
+        if key in ["is_language_hebrew", "is_zoomed_screen", "start_halacha_clock", "halacha_clock_labels"]:
+            display_values = [reverse(value_labels[v]) for v in options_to_edit[key]]
+            display_val = reverse(value_labels.get(val, val))
+        elif key in ["hesberim_mode", "zmanim_mode"]:
+            if is_heb_locale:
+                display_values = [modes_hebrew[v] for v in options_to_edit[key]]
+                display_val = modes_hebrew.get(val, display_values[0])
+            else:
+                display_values = options_to_edit[key]
+                display_val = val if val in display_values else display_values[0]
+        else:
+            display_values = options_to_edit[key]
+            display_val = val if val in display_values else display_values[0] if display_values else ""
+
+        combo = ttk.Combobox(frame, values=display_values, state="readonly")
+        combo.set(display_val)
+        combo.pack(side="right", padx=5)
+        entries[key] = combo
+
+    Button(edit_win, text=reverse("שמור הגדרות") if is_heb_locale else "Save settings", command=save_changes).pack(pady=20)
+
+#####################################################################################################
+# עד כאן איזור הגדרות התוכנה
+#####################################################################################################
+
+
 # תחילת הממשק הגרפי של התוכנה הראשית כוכבים וזמנים
 if __name__ == '__main__':
             
     # קבלת הגדרות ברירות מחדל עבור התוכנה באמצעות פונקצייה
-    eph, eph_440, eph_441s, state1, input_years_range, locations_path, locations_edited_path, stars_path, cu_dir_path,is_installed = get_defaults()
+    eph, eph_440, eph_441s, state1, input_years_range, locations_path, locations_edited_path, stars_path, settings_path, cu_dir_path,is_installed = get_defaults()
+    
+    load_settings_dict_from_file() # טעינת ההגדרות פעם אחת בתחילת הקוד
     
     # ניסיון קבלת כל המיקומים ושמותיהם באמצעות פונקצייה מתוך קובץ המיקומים הערוך ואם יש שגיאה בקובץ הערוך אז לקבל מיקומים מתוך קובץ המיקומים המקורי
     # הערה: במקרה שיש שגיאה בקובץ המיקומים הערוך המשתמש יצטרך לאפס אותו כדי להתחיל להשתמש בו או אפילו כדי לבחור מיקום ברירת מחדל
@@ -8576,8 +8785,12 @@ if __name__ == '__main__':
         #ES_DISPLAY_REQUIRED = 0x00000002
         #ctypes.windll.kernel32.SetThreadExecutionState(ES_CONTINUOUS | ES_DISPLAY_REQUIRED)
         ######################################################################################
+    
+    
     # שינוי קנה המידה של התצוגה במקרה שהרזולוציה של המסך גדולה יותר
     ws.tk.call('tk', 'scaling', cu_scaling*magnification_factor) # סקאלינג לא עובד בלינוקס
+    
+    
     # הגדרת גודל החלון ומיקומו על המסך
     ws.geometry(f"{round(685*magnification_factor)}x{round(685*magnification_factor)}+{round(0*magnification_factor)}+{round(1*magnification_factor)}")
     #print(magnification_factor)
@@ -8585,6 +8798,14 @@ if __name__ == '__main__':
     ws.minsize(200,200)
     # אם רוצים למלאות את המסך כל מסך לפי הרזולוצייה שלו יש לפעול לפי השורה הבאה
     #ws.geometry(f'{ws.winfo_screenwidth()}x{ws.winfo_screenheight()}+1+1')
+    
+    if settings_dict["is_zoomed_screen"]:
+        if is_windows:
+            ws.state('zoomed')
+        else:
+            ws.update_idletasks()
+            ws.attributes('-zoomed', True) # מתאים ללינוקס
+
     
     # הגדרת האייקון לתוכנה וזה משפיע גם על כל החלונות האחרים בתוכנה
     cu_icon_path = resource_path('cu_icon.png')
@@ -8639,35 +8860,27 @@ if __name__ == '__main__':
     # באיזו שפה התוכנה תיטען
     
     # הגדרת הכתובת עבור ברירת מחדל של השפה הראשית לתוכנה
-    language_path = os.path.join(cu_dir_path, "cu_language.txt")
     
     # אם יש קובץ להגדרת שפת ברירת המחדל של התוכנה
-    if os.path.exists(language_path):
-        # פתיחת קובץ הגדרת השפה וקריאה של מה שכתוב בו וקביעת שפת השימוש הנוכחית בהתאם למה שכתוב בקובץ
-        with open(language_path, 'r', encoding=cu_encod) as f:
-            language = f.readline()
-            is_heb_locale = False if language in ["English", "english"] else True 
+    if settings_dict["is_language_hebrew"] != None:
+        is_heb_locale = settings_dict["is_language_hebrew"] 
     
     # אם אין קובץ להגדרת שפת ברירת מחדל כי זו פתיחה ראשונה של התוכנה אבל שפת מערכת ההפעלה היא עברית הכל מוגדר בעברית והגדרת קובץ שפת ברירת מחדל עברית
-    elif not os.path.exists(language_path) and is_system_hebrew:
-        is_heb_locale = True
-        with open(language_path, 'w', encoding=cu_encod, newline='') as newFile:
-            newFile.write("Hebrew")
+    else:
+        if is_system_hebrew:
+            is_heb_locale = True
+            save_setting(key="is_language_hebrew", value=is_heb_locale)
+        else:
+            # יש לשאול את המשתמש האם הוא רוצה להמשיך באנגלית. אם הוא רוצה התוכנה תיפתח באנגלית וגם יגרום שאנגלית תהיה ברירת המחדל מכאן והלאה
+            # אם הוא לא רוצה להמשיך באנגלית התוכנה תיפתח בעברית וגם יגרום שעברית תהיה ברירת המחדל מכאן והלאה
+            # השפה של הכיתובים בתוכנה תלוייה במשתנה is_heb_locale       
+            ask = 'We noticed that your operating system is in English. The cochavim uzmanim software was built in Hebrew. Part of the software has been translated into English, but it is recommended to display everything in Hebrew. You can always change the default language in the "More options" menu.\nDo you want to continue in English?'
+            msg_box = tkinter.messagebox.askquestion(f'cochavim uzmanim Language choosing',ask ,icon='warning', default="no")
+            is_heb_locale = False if msg_box == 'yes' else True
+            save_setting(key="is_language_hebrew", value=is_heb_locale)
         
-    # אם אין קובץ להגדרת בחירת שפה אבל שפת מערכת ההפעלה לא בעברית
-    elif not os.path.exists(language_path) and not is_system_hebrew:
-        # יש לשאול את המשתמש האם הוא רוצה להמשיך באנגלית. אם הוא רוצה התוכנה תיפתח באנגלית וגם יגרום שאנגלית תהיה ברירת המחדל מכאן והלאה
-        # אם הוא לא רוצה להמשיך באנגלית התוכנה תיפתח בעברית וגם יגרום שעברית תהיה ברירת המחדל מכאן והלאה
-        # השפה של הכיתובים בתוכנה תלוייה במשתנה is_heb_locale       
-        ask = 'We noticed that your operating system is in English. The cochavim uzmanim software was built in Hebrew. Part of the software has been translated into English, but it is recommended to display everything in Hebrew. You can always change the default language in the "More options" menu.\nDo you want to continue in English?'
-        msg_box = tkinter.messagebox.askquestion(f'cochavim uzmanim Language choosing',ask ,icon='warning', default="no")
-        is_heb_locale = False if msg_box == 'yes' else True
-        language_to_write = "English" if msg_box == 'yes' else "Hebrew"
-        # כתיבת הקובץ המתאים לבחירת המשתמש
-        with open(language_path, 'w', encoding=cu_encod, newline='') as newFile:
-            newFile.write(language_to_write)
+        
     
-
     # הגדרת כותרת התוכנה לפי השפה שבשימוש כרגע
     if not is_heb_locale:
         ws.title(f'cochavim uzmanim +dates: by Rabbi Dr. Simcha Gershon Bohrer | Version: {cu_version_date:%d/%m/%Y} {"installed" if is_installed else "non-installed"}')
@@ -8730,7 +8943,9 @@ if __name__ == '__main__':
     # הגדרת משתנה שמחזיק את הבחירה של תפריט הבחירה
     choice_print = StringVar(ws)
     
-    mb.menu.add_command ( label=reverse("שעון ההלכה") if is_heb_locale else "halacha_watch", command=halacha_watch)
+    mb.menu.add_command ( label=reverse("שעון ההלכה") if is_heb_locale else "halacha_clock", command=halacha_clock)
+    mb.menu.add_command ( label=reverse("הגדרות") if is_heb_locale else "settings", command=edit_settings)
+    mb.menu.add_command ( label=reverse("איפוס הגדרות") if is_heb_locale else "reset settings", command=to_default_settings)
     mb.menu.add_radiobutton ( label=reverse("רשימת כוכבי שֶׁבֶת ראשונים הנראים אחרי השקיעה") if is_heb_locale else "List of first stars after sunset",variable=choice_print, value="STARS_EVENING", command=print_halachic_times )
     mb.menu.add_radiobutton ( label=reverse("רשימת כוכבי שֶׁבֶת אחרונים הנראים לפני הזריחה") if is_heb_locale else "List of last stars before sunset",variable=choice_print, value="STARS_MORNING", command=print_halachic_times )
     mb.menu.add_radiobutton ( label=reverse("רשימת זמני היום") if is_heb_locale else "List of day halachic times",variable=choice_print, value="ZMANIM", command=print_halachic_times )
@@ -8762,7 +8977,6 @@ if __name__ == '__main__':
     # אם זו גרסת תוכנה שאינה מותקנת הוספת כפתור התקנה
     if not is_installed:
         mb.menu.add_command ( label=reverse("התקנה קבועה של תוכנת כוכבים וזמנים") if is_heb_locale else "Installation of cochavim uzmanim", command=install_cu)
-    mb.menu.add_command ( label=reverse("החלפת שפת ברירת מחדל ל-אנגלית") if is_heb_locale else "Change default language to Hebrew", command=change_default_language)
     mb.menu.add_command ( label=reverse("מידע: סולם הזמן הנוכחי והסטייה השנתית שלו") if is_heb_locale else "information: current timescale and its annual deviation", command=time_scale_showinfo)
     
     #----------------------------------
@@ -9133,7 +9347,12 @@ if __name__ == '__main__':
 
     values_MGA = [222, -19.75, -16]
     Halachic_method_MGA = DoubleVar(ws)
-    Halachic_method_MGA.set(values_MGA[2])
+    idx_mga = values_MGA.index(settings_dict["mga_deg"]) if settings_dict["mga_deg"] in values_MGA else 2
+    Halachic_method_MGA.set(values_MGA[idx_mga])
+      
+    def on_mga_change():
+        save_setting("mga_deg", Halachic_method_MGA.get())
+        all_calculations()
 
     for i, value in enumerate(values_MGA):
         ttk.Radiobutton(
@@ -9141,7 +9360,7 @@ if __name__ == '__main__':
             text=f"{value}°" if value < 100 else "-16|4",
             variable=Halachic_method_MGA,
             value=value,
-            command=all_calculations
+            command=on_mga_change
         ).grid(row=0, column=i, padx=10)
         
     
@@ -9171,74 +9390,42 @@ if __name__ == '__main__':
     sunset_frame_R = Frame(right_tc, bg=cu_color)
     sunset_frame_R.grid(row=0, column=0, sticky="n")
 
-    Entry(
-        sunset_frame_R,
-        textvariable=print_Sunset_determines_GRA,
-        width=8,
-        font="narkisim 14",
-        justify="center"
-    ).pack()
-
-    Label(
-        sunset_frame_R,
-        text=reverse("שקיעה קובעת") if is_heb_locale else "Sunset determines",
-        bg=cu_color
-    ).pack()
+    Entry(sunset_frame_R, textvariable=print_Sunset_determines_GRA, width=8, font="narkisim 14", justify="center").pack()
+    Label(sunset_frame_R, text=reverse("שקיעה קובעת") if is_heb_locale else "Sunset determines", bg=cu_color).pack()
 
     # --- שעון ---
     clock_frame_R = Frame(right_tc, bg=cu_color)
     clock_frame_R.grid(row=0, column=1, sticky="n")
 
-    Entry(
-        clock_frame_R,
-        textvariable=print_temporal_hour_GRA,
-        width=9,
-        font="narkisim 25 bold",
-        justify="center",
-        relief="flat",
-        disabledbackground= "gray87"
-    ).pack()
-
-    Label(
-        clock_frame_R,
-        text=reverse("גר''א - שעה זמנית") if is_heb_locale else "GRA - Temporal Hour",
-        font="david 14 bold",
-        bg=cu_color
-    ).pack()
+    Entry(clock_frame_R, textvariable=print_temporal_hour_GRA, width=9, font="narkisim 25 bold", justify="center", relief="flat", disabledbackground= "gray87").pack()
+    Label(clock_frame_R, text=reverse("גר''א - שעה זמנית") if is_heb_locale else "GRA - Temporal Hour", font="david 14 bold", bg=cu_color).pack()
 
     # --- זריחה ---
     sunrise_frame_R = Frame(right_tc, bg=cu_color)
     sunrise_frame_R.grid(row=0, column=2, sticky="n")
 
-    Entry(
-        sunrise_frame_R,
-        textvariable=print_Sunrise_determines_GRA,
-        width=8,
-        font="narkisim 14",
-        justify="center"
-    ).pack()
-
-    Label(
-        sunrise_frame_R,
-        text=reverse("זריחה קובעת") if is_heb_locale else "Sunrise determines",
-        bg=cu_color
-    ).pack()
+    Entry(sunrise_frame_R,textvariable=print_Sunrise_determines_GRA,width=8,font="narkisim 14",justify="center").pack()
+    Label(sunrise_frame_R,text=reverse("זריחה קובעת") if is_heb_locale else "Sunrise determines",bg=cu_color).pack()
 
     # --- שורה תחתונה ---
-    Entry(right_tc, textvariable=print_day_or_night_GRA,
-          width=5, font="narkisim 14", justify="center").grid(row=1, column=0)
+    Entry(right_tc, textvariable=print_day_or_night_GRA,width=5, font="narkisim 14", justify="center").grid(row=1, column=0)
     Label(right_tc, text=reverse("יום / לילה") if is_heb_locale else "Day / Night").grid(row=2, column=0)
 
     right_radio_frame = Frame(right_tc, bg=cu_color)
     right_radio_frame.grid(row=1, column=1)
 
-    Entry(right_tc, textvariable=print_minutes_in_temporal_hour_GRA,
-          width=5, font="narkisim 14", justify="center").grid(row=1, column=2)
+    Entry(right_tc, textvariable=print_minutes_in_temporal_hour_GRA,width=5, font="narkisim 14", justify="center").grid(row=1, column=2)
     Label(right_tc, text=reverse("דקות לשעה") if is_heb_locale else "Minutes / hour").grid(row=2, column=2)
 
     values_GRA = [0, -0.833]
     Halachic_method_GRA = DoubleVar(ws)
-    Halachic_method_GRA.set(values_GRA[1])
+    idx_gra = values_GRA.index(settings_dict["rise_set_deg"]) if settings_dict["rise_set_deg"] in values_GRA else 1
+    Halachic_method_GRA.set(values_GRA[idx_gra])
+    
+    def on_gra_change():
+        save_setting("rise_set_deg", Halachic_method_GRA.get())
+        all_calculations()
+
 
     for i, value in enumerate(values_GRA):
         ttk.Radiobutton(
@@ -9246,7 +9433,7 @@ if __name__ == '__main__':
             text=f"{value}°",
             variable=Halachic_method_GRA,
             value=value,
-            command=all_calculations
+            command=on_gra_change
         ).grid(row=0, column=i, padx=10)
         
     Label(right_tc, text=reverse("גובה זריחה ושקיעה") if is_heb_locale else "Sunrise and sunset Alt").grid(row=2, column=1)
@@ -9411,9 +9598,10 @@ if __name__ == '__main__':
             tkMessageBox.showinfo("warning", "The three fonts: 'Narkisim, David, Miriam' from Windows, must be installed in the operating system's fonts folder for correct display")
         # מחזיר את הפוקוס לחלון הראשי כי אחרת אי אפשר לצאת מהתוכנה בלחיצה על אסקייפ או לשנות מיקומים בלחצני החיצים
         ws.focus_force()
-
     
-    halacha_watch() # אם רוצים ששעון ההלכה ייפתח מייד בעליית התוכנה
+    if settings_dict["start_halacha_clock"]:
+        halacha_clock() # אם רוצים ששעון ההלכה ייפתח מייד בעליית התוכנה
+        
     #---------------------------------------------
     # בין אם יש רישיון ובין אם אין רישיון חייבת להיות לולאה אינסופית על החלון הראשי כך
     ws.mainloop()
