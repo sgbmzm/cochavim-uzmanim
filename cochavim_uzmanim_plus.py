@@ -5350,7 +5350,7 @@ def export_calendar_halacha_times():
         return
     
     # התחייבות המשתמש
-    msg_box = tkinter.messagebox.askquestion(reverse(f'התחייבות לפני יצירת קובץ זמנים') if is_heb_locale else 'Commitment before creating a times file',f'\nאני מתחייב/ת שלא להשתמש בקבצים למטרות רווח בלא קבלת אישור מפורש מאת יוצר התוכנה' if is_heb_locale else '\nI undertake not to use these files for financial gain without receiving express permission from the creator of the software',icon='warning', default="no")
+    msg_box = tkinter.messagebox.askquestion(f'התחייבות לפני יצירת קובץ זמנים' if is_heb_locale else 'Commitment before creating a times file',reverse(f'\nאני מתחייב שלא להשתמש בקבצים למטרות רווח \nבלא קבלת אישור מפורש מאת יוצר התוכנה') if is_heb_locale else '\nI undertake not to use these files for financial gain without receiving express permission from the creator of the software',icon='warning', default="no")
     
     # אם המשתמש לא מסכים - יוצאים מהפונקצייה
     if msg_box == 'no':
@@ -5941,6 +5941,7 @@ def export_calendar_halacha_times():
 # משתנה שקובע האם לחשב ירח ראשון או אחרון מוגדר כברירת מחדל על ירח ראשון
 # משתנה איזה אירועים להדפיס: כברירת מחדל הכל גם כשהירח לא נראה בעין
 def export_calendar_moons(first_last = "first", events_to_print = "הכל"):
+
     
     # אם המשתמש לחץ על כפתור חישוב ירח אחרון: שינוי של המשתנה שקובע האם לחשב ירח ראשון או אחרון שלא יהיה מוגדר על חישוב ירח ראשון
     if choice_moon_export.get() == "LAST":
@@ -6222,6 +6223,14 @@ def export_calendar_moons(first_last = "first", events_to_print = "הכל"):
     # אם כפתור הפעלת החישובים לא פעיל, יש לצאת מייד מהפונקצייה
     if C1.get() != 1:
         return
+    
+    # התחייבות המשתמש
+    msg_box = tkinter.messagebox.askquestion(f'התחייבות לפני יצירת קובץ ירח' if is_heb_locale else 'Commitment before creating a times file',reverse(f'\nאני מתחייב שלא להשתמש בקבצים למטרות רווח \nבלא קבלת אישור מפורש מאת יוצר התוכנה') if is_heb_locale else '\nI undertake not to use these files for financial gain without receiving express permission from the creator of the software',icon='warning', default="no")
+    
+    # אם המשתמש לא מסכים - יוצאים מהפונקצייה
+    if msg_box == 'no':
+        return  
+   
        
 # ראשית כל עצירת החישובים הרציפים של התוכנה הראשית כדי לא להכביד על המערכת
     if choice_time.get() == "עכשיו מתעדכן":
@@ -8524,6 +8533,103 @@ def date_converter():
 ####################################################################################################################
 ####################################################################################################################
 
+
+# פונקצייה מאוד חשובה שעושה שאי אפשר לשנות מיקום אם לא נמי בגרסה מלאה
+def block_location_change(event=None):
+    FULL_VERSION_PHRASE = "שילמתי עבור גרסה מלאה" if is_heb_locale else "I have paid for the full version"
+    FLAG_PATH = os.path.join(cu_dir_path, "full_version.flag")
+
+    def is_full_version():
+        return os.path.exists(FLAG_PATH)
+
+    default_location = locations_names[0]
+
+    # אם כבר גרסה מלאה → לא חוסמים
+    if is_full_version():
+        return
+
+    # החזרת הבחירה לברירת מחדל
+    city.set(default_location)
+
+    # חלון גרסה מלאה עם הסבר מראש
+    win = Toplevel(ws)
+    win.title("שדרוג לגרסה מלאה" if is_heb_locale else "Upgrade to Full Version")
+    win.transient(ws)
+    win.grab_set()
+    win.focus_force()
+
+    # הסבר למשתמש על המגבלה ועל הצורך בגרסה מלאה
+    Label(
+        win,
+        text=reverse("כדי לשנות מיקום נדרשת גרסה מלאה.\nלמעבר לגרסה מלאה נדרש תשלום של 20 ₪")
+             if is_heb_locale else
+             "To change location, the full version is required.\nUpgrading to the full version requires a payment of 20 ILS",
+        font=("Arial", 11, "bold"),
+        wraplength=350,
+        justify="center"
+    ).pack(pady=10)
+
+    # קישור לתשלום
+    link = Label(
+        win,
+        text=reverse("לחץ כאן לתשלום") if is_heb_locale else "Click here to pay",
+        fg="blue",
+        cursor="hand2",
+        font=("Arial", 10, "underline")
+    )
+    link.pack()
+    link.bind("<Button-1>", lambda e: webbrowser.open("https://your-payment-link-here"))
+
+    # הסבר על המשפט להקלדה לאחר תשלום
+    Label(
+        win,
+        text=reverse('לאחר התשלום יש להקליד בדיוק את המשפט הבא:') if is_heb_locale else 'After payment, type exactly the following phrase:',
+        pady=10
+    ).pack()
+
+    Label(
+        win,
+        text=reverse(FULL_VERSION_PHRASE) if is_heb_locale else FULL_VERSION_PHRASE,
+        font=("Arial", 11, "bold"),
+        fg="darkgreen"
+    ).pack()
+
+    # שדה הקלדה
+    entry = Entry(win, width=35, justify="center")
+    entry.pack(pady=10)
+    entry.config(state="normal")
+    entry.focus_set()
+
+    result = {"approved": False}
+
+    def confirm():
+        if entry.get().strip() == FULL_VERSION_PHRASE:
+            # יצירת הקובץ שמסמן גרסה מלאה
+            with open(FLAG_PATH, "w", encoding="utf-8") as f:
+                f.write("FULL_VERSION=1")
+            result["approved"] = True
+            win.destroy()
+            tkMessageBox.showinfo(
+                reverse("גרסה מלאה") if is_heb_locale else "Full version",
+                reverse("תודה! עכשיו ניתן לשנות מיקום") if is_heb_locale else "Thank you! You can now change location."
+            )
+        else:
+            tkMessageBox.showerror(
+                reverse("שגיאה") if is_heb_locale else "Error",
+                reverse("הטקסט שהוזן אינו תואם בדיוק") if is_heb_locale else "The entered text does not match exactly"
+            )
+
+    Button(win, text=reverse("אישור") if is_heb_locale else "Confirm", command=confirm).pack(pady=10)
+    win.wait_window()
+
+    # אם לא אישר → החזר לברירת מחדל
+    if not result["approved"]:
+        city.set(default_location)
+
+
+#########################################################################################################
+
+
 # חיפוש אינדקס של "ירושלים" או החזרת 0 אם לא נמצא
 jerusalem_index = 0#([i for i, loc in enumerate(locations) if loc["heb_name"] == "ירושלים"] or [0])[0]
 
@@ -8541,7 +8647,7 @@ settings_dict = {
     "is_language_hebrew": None,
     "is_zoomed_screen": False,
     "start_halacha_clock": False,
-    "halacha_clock_labels": True
+    "halacha_clock_labels": True,
 }
 
 default_settings_dict = dict(settings_dict)
@@ -8589,9 +8695,6 @@ def to_default_settings():
     #ws.destroy()
     restart_app()
 
-# -----------------------------
-# עריכת הגדרות
-# -----------------------------
 # -----------------------------
 # עריכת הגדרות
 # -----------------------------
@@ -8736,7 +8839,7 @@ if __name__ == '__main__':
     eph, eph_440, eph_441s, state1, input_years_range, locations_path, locations_edited_path, stars_path, settings_path, cu_dir_path,is_installed = get_defaults()
     
     load_settings_dict_from_file() # טעינת ההגדרות פעם אחת בתחילת הקוד
-    
+      
     # ניסיון קבלת כל המיקומים ושמותיהם באמצעות פונקצייה מתוך קובץ המיקומים הערוך ואם יש שגיאה בקובץ הערוך אז לקבל מיקומים מתוך קובץ המיקומים המקורי
     # הערה: במקרה שיש שגיאה בקובץ המיקומים הערוך המשתמש יצטרך לאפס אותו כדי להתחיל להשתמש בו או אפילו כדי לבחור מיקום ברירת מחדל
     # השגיאות שיכולות להיות בקובץ המיקומים הערוך: 1. הוא ריק. 2. יש בו ערכים שגויים 3. הוא כתוב בקידוד אחר מאשר 1255
@@ -9091,6 +9194,8 @@ if __name__ == '__main__':
 
     # מיקום גיאוגרפי-עיר----------------------------------------------
 
+    
+    
     # הגדרת תפריט גלילה קומבודקס עבור בחירת מיקום
     city = StringVar(ws)
     locations_names = [reverse(i["location_name_heb"]) if is_heb_locale else i["location_name_en"] for i in locations]
@@ -9099,6 +9204,19 @@ if __name__ == '__main__':
     Label(date_time, text=reverse("בחר מיקום גיאוגרפי") if is_heb_locale else "Select location", font= "david 13 bold").grid(column=14, row=2)
     # הגדרת ברירת מחדל בפתיחת התוכנה: שהמיקום יהיה המיקום הראשון ברשימת המיקומים שזהו המיקום הראשון בקובץ האקסל של המיקומים
     city.set(locations_names[0])
+      
+       
+    is_full_version = os.path.exists(os.path.join(cu_dir_path, "full_version.flag"))
+    
+    # חיבור האירוע
+    if not is_full_version:
+        locations_cb.bind("<<ComboboxSelected>>", block_location_change)        
+            
+    #######################################################################3
+
+
+
+
 
     
     # הפרדה-------------------------------
