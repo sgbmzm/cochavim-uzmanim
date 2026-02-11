@@ -2517,8 +2517,8 @@ hesberim = [
         ["סוף שריפת חמץ", "05:00"],
 
         
-        ["להלן תנאי מינימום לראיית ירח ראשונה", ""],
-        [f"שלב {reverse('3%')}; והפרש גובה שמש-ירח {reverse('8°')}", ""],
+        ["להלן תנאי מינימום כלליים לראיית ירח ראשונה", ""],
+        [f"שלב במסלול: {reverse('3%')}; והפרש גובה שמש-ירח {reverse('8°')}", ""],
     
     ]  
 
@@ -2531,14 +2531,18 @@ hesberim = [
 current_screen_hesberim = 0.0 
 current_screen_zmanim = 0.0
 current_screen_zmanim_with_clocks = 0.0
-
+current_screen_body = 0.0
 
 def halacha_clock():
-    
+     
     # אם כפתור הפעלת החישובים לא פעיל, יש לצאת מייד מהפונקצייה
     if C1.get() != 1:
         return
     
+    # הגובים האפשריים להצגה בשעון ההלכה. זה בהתאמה לגופים המוגדרים ב body1 למעט אוראנוס נפטון ופלוטו. הירח בכוונה ראשון
+    hw_planets_names = reverse(['ירח', 'כוכב-חמה', 'נוגה', 'מאדים', 'צדק', 'שבתאי']) if is_heb else ['Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn']
+    
+    ##############################################################################################################
     root_hw = Toplevel(ws)
     ##############################################
     # חובה!!!!! לעשות את זה כדי לבטל את הסקאלינג הרגיל של כוכבים וזמנים הכללי שהותאם למסך במקדם הגדלה
@@ -2554,7 +2558,8 @@ def halacha_clock():
      
     # פונקצייה מה לעשות בלחיצה על אסקייפ
     def for_Escape():
-        choice_time.set("עכשיו (לפי המחשב)")
+        choice_time.set("עכשיו (לפי המחשב)") # מחזירים מחזרה לזמן העכשווי
+        body1.set(hw_planets_names[0]) # מחזירים בחזרה לירח
         root_hw.destroy()
 
     # בלחיצה על אסקייפ סגירת החלון וכו
@@ -2578,9 +2583,7 @@ def halacha_clock():
     if choice_time.get() != "עכשיו מתעדכן" and not is_test:
         choice_time.set("עכשיו מתעדכן")
         # חובה! קריאה לפונקציית כל החישובים כדי שתדע לחזור שוב ושוב על החישובים
-        all_calculations()
-        
-        #### אם רוצים להגדיר בודי1 על הירח צריך לטפל בזה כאן. אם לא אז יוצג הגוף הנבחר כרגע
+        all_calculations()  
     
     # קבלת גודל המסך
     #screen_width = root_hw.winfo_screenwidth()
@@ -2613,7 +2616,11 @@ def halacha_clock():
     # צבע מגנטה עמום יותר
     hw_dim_magenta = "#AA55AA"
     
-    add_labels = settings_dict["halacha_clock_labels"]
+    
+    is_add_labels = settings_dict["halacha_clock_labels"] # האם להציג תוייות הסבר בשעון ההלכה
+    
+    is_show_planets = settings_dict["halacha_clock_planets"] # האם להציג רק גם עוד כוכבי לכת או רק את הירח 
+    
     
     # איזור כותרת
     canvas.create_text(160 * scale, 10 * scale, text=reverse("שעון ההלכה                                      כוכבים וזמנים"), fill="turquoise", font=scaled_font("miriam", 10, "bold"))
@@ -2626,42 +2633,57 @@ def halacha_clock():
 
     # איזור שעה זמנית גרא ומגא
     canvas.create_text(300 * scale, 51 * scale, text=reverse("גרא"), fill="white", font=scaled_font("miriam", 13))
-    if add_labels:
-        canvas.create_text(300 * scale, 77 * scale, text=reverse("דקות לשעה"), fill="turquoise", font=scaled_font("miriam", 4))
-    gra_title_id = canvas.create_text(201 * scale, 47 * scale, text=reverse(""), fill="turquoise", font=scaled_font("miriam", 4))
+    minutes_gra_label_id = canvas.create_text(300 * scale, 77 * scale, text="", fill="turquoise", font=scaled_font("miriam", 4))
+    if is_add_labels:
+        canvas.create_text(201 * scale, 47 * scale, text=reverse('שעון שעה זמנית'), fill="turquoise", font=scaled_font("miriam", 4))
     gra_method_id = canvas.create_text(300 * scale, 60 * scale, text="", fill=hw_dim_magenta, font=scaled_font("miriam", 5))
     minutes_in_gra_temporal_hour_id = canvas.create_text(300 * scale, 70 * scale, text="", fill="turquoise", font=scaled_font("miriam", 10))
-    gra_temporal_hour_id = canvas.create_text(208 * scale, (67 if add_labels else 62) * scale, text="", fill=hw_green, font=scaled_font("miriam", 30, "bold"))
+    gra_temporal_hour_id = canvas.create_text(208 * scale, 66 * scale, text="", fill=hw_green, font=scaled_font("miriam", 30, "bold"))
     
-
-    canvas.create_text(115 * scale, 51 * scale, text=reverse("מגא"), fill="white", font=scaled_font("miriam", 13))
-    if add_labels:
-        canvas.create_text(115 * scale, 77 * scale, text=reverse("דקות לשעה"), fill="turquoise", font=scaled_font("miriam", 4))
-    mga_title_id = canvas.create_text(50 * scale, 47 * scale, text=reverse(""), fill="turquoise", font=scaled_font("miriam", 4))
-    mga_method_id = canvas.create_text(115 * scale, 60 * scale, text="", fill=hw_dim_magenta, font=scaled_font("miriam", 5))
-    minutes_in_mga_temporal_hour_id = canvas.create_text(115 * scale, 70 * scale, text="", fill="turquoise", font=scaled_font("miriam", 10))
-    mga_temporal_hour_id = canvas.create_text(50 * scale, (65 if add_labels else 60) * scale, text="", fill=hw_green, font=scaled_font("miriam", 20, "bold"))
+    left_x = 117
+    canvas.create_text(left_x * scale, 51 * scale, text=reverse("מגא"), fill="white", font=scaled_font("miriam", 13))
+    minutes_mga_label_id = canvas.create_text(left_x * scale, 77 * scale, text="", fill="turquoise", font=scaled_font("miriam", 4))
+    if is_add_labels:
+        canvas.create_text(50 * scale, 47 * scale, text=reverse('שעון שעה זמנית'), fill="turquoise", font=scaled_font("miriam", 4))
+    mga_method_id = canvas.create_text(left_x * scale, 60 * scale, text="", fill=hw_dim_magenta, font=scaled_font("miriam", 5))
+    minutes_in_mga_temporal_hour_id = canvas.create_text(left_x * scale, 70 * scale, text="", fill="turquoise", font=scaled_font("miriam", 10))
+    mga_temporal_hour_id = canvas.create_text(50 * scale, 65 * scale, text="", fill=hw_green, font=scaled_font("miriam", 20, "bold"))
     canvas.create_line(0, 80 * scale, screen_width, 80 * scale, fill="yellow")
 
     # איזור מידע על שמש וירח
-    canvas.create_text(300 * scale, 90 * scale, text=reverse("שמש"), fill="white", font=scaled_font("miriam", 13))
-    sun_az_id = canvas.create_text(300 * scale, 110 * scale, text="", fill="turquoise", font=scaled_font("miriam", 10))
-    if add_labels:
-        canvas.create_text(200 * scale, 85 * scale, text=reverse("גובה מהאופק:"), fill="turquoise", font=scaled_font("miriam", 4))
-        canvas.create_text(300 * scale, 102 * scale, text=reverse("אַזִימוּט:"), fill="turquoise", font=scaled_font("miriam", 4))
-    sun_alt_id = canvas.create_text(209 * scale, (105 if add_labels else 101) * scale, text="", fill=hw_green, font=scaled_font("miriam", 30, "bold"))
+    canvas.create_text(300 * scale, 88 * scale, text=reverse("שמש"), fill="white", font=scaled_font("miriam", 13))
+    sun_az_id = canvas.create_text(300 * scale, 115 * scale, text="", fill="turquoise", font=scaled_font("miriam", 10))
+    canvas.create_text(300 * scale, 99 * scale,text="◆",fill=hw_green,font=scaled_font("miriam", 5))
 
-    moon_name_id = canvas.create_text(115 * scale, 90 * scale, text=reverse("ירח"), fill="white", font=scaled_font("miriam", 13))
-    if add_labels:
-        canvas.create_text(114 * scale, 102 * scale, text=reverse("אַזִימוּט:"), fill="turquoise", font=scaled_font("miriam", 4))
-        canvas.create_text(80 * scale, 112 * scale, text=reverse("מסלול \nחודשי:"), fill="turquoise", font=scaled_font("miriam", 4))
-    moon_az_id = canvas.create_text(115 * scale, 110 * scale, text="", fill="turquoise", font=scaled_font("miriam", 10))
-    moon_alt_id = canvas.create_text(50 * scale, 94 * scale, text="", fill=hw_green, font=scaled_font("miriam", 20, "bold"))
-    moon_phase_id = canvas.create_text(40 * scale, 113 * scale, text="", fill="turquoise", font=scaled_font("miriam", 14, "bold"))
+    if is_add_labels:
+        canvas.create_text(200 * scale, 85 * scale, text=reverse("גובה (מהאופק):"), fill="turquoise", font=scaled_font("miriam", 4))
+        canvas.create_text(300 * scale, 107 * scale, text=reverse("אַזִימוּט:"), fill="turquoise", font=scaled_font("miriam", 4))
+    sun_alt_id = canvas.create_text(209 * scale, 106 * scale, text="", fill=hw_green, font=scaled_font("miriam", 30, "bold"))
+
+    moon_name_id = canvas.create_text(left_x * scale, 88 * scale, text=reverse("ירח"), fill="white", font=scaled_font("miriam", 13))
+    if is_add_labels:
+        canvas.create_text(left_x * scale, 107 * scale, text=reverse("אַזִימוּט:"), fill="turquoise", font=scaled_font("miriam", 4))
+    moon_phase_lable_id = canvas.create_text(75 * scale, 88 * scale, text=reverse("מסלול \nחודשי:"), fill="turquoise", font=scaled_font("miriam", 4))
+    moon_alt_lable_id = canvas.create_text(50 * scale, 90 * scale, text=reverse("גובה (מהאופק):"), fill="turquoise", font=scaled_font("miriam", 4))
+    moon_az_id = canvas.create_text(left_x * scale, 115 * scale, text="", fill="turquoise", font=scaled_font("miriam", 10))
+    canvas.create_text(left_x * scale, 99 * scale,text="◆",fill=hw_green,font=scaled_font("miriam", 5))
+
+    moon_alt_id = canvas.create_text(50 * scale, 109 * scale, text="", fill=hw_green, font=scaled_font("miriam", 20, "bold"))
+    moon_phase_id = canvas.create_text(40 * scale, 89 * scale, text="", fill="turquoise", font=scaled_font("miriam", 14, "bold"))
     canvas.create_line(0, 120 * scale, screen_width, 120 * scale, fill="yellow")
 
     # איזור מתחלף: זמנים בשעון רגיל ושעונים נוספים
-    zmanim_with_clocks_id = canvas.create_text(160 * scale, 132 * scale, text="", fill="white", font=scaled_font("miriam", 15))
+    zmanim_with_clocks_id = canvas.create_text(160 * scale, 129 * scale, text="", fill="white", font=scaled_font("miriam", 15))
+    
+    # תוויות שעונים – נוצרות פעם אחת בלבד
+    clocks_labels_y = 140
+    clocks_label_ids = [
+        canvas.create_text(280 * scale, clocks_labels_y * scale, text=reverse("השעה בגריניץ (utc)"), fill="turquoise", font=scaled_font("miriam", 4)),
+        canvas.create_text(200 * scale, clocks_labels_y * scale, text=reverse("שעון מקומי: חצות אמיתי"), fill="turquoise", font=scaled_font("miriam", 4)),
+        canvas.create_text(120 * scale, clocks_labels_y * scale, text=reverse("שעון מקומי: חצות ממוצע"), fill="turquoise", font=scaled_font("miriam", 4)),
+        canvas.create_text(40 * scale, clocks_labels_y * scale, text=reverse("שעות מהשקיעה (מַגְרַבּ)"), fill="turquoise", font=scaled_font("miriam", 4)),
+    ]
+    
     canvas.create_line(0, 143 * scale, screen_width, 143 * scale, fill="yellow")
 
     # איזור שעון רגיל ותאריך לועזי ואיזור הזמן
@@ -2672,15 +2694,16 @@ def halacha_clock():
     
     # איזור מתחלף שקיים רק במחשב ולא בשעון ההלכה הפיזי ומיוע להצגת הסברים או אינפורמציה אחרת
     info_id = canvas.create_text(160 * scale, 174 * scale, text="", fill=hw_dim_magenta, font=scaled_font("miriam", 10))
+    
  
     
     
-    global current_screen_hesberim, current_screen_zmanim, current_screen_zmanim_with_clocks
+    global current_screen_hesberim, current_screen_zmanim, current_screen_zmanim_with_clocks, current_screen_body
     # איפוס ההסברים כדי שבהדלקה מחודשת יתחילו מהתחלה
     current_screen_hesberim = 0.0 
     current_screen_zmanim = 0.0
     current_screen_zmanim_with_clocks = 0.0
-
+    current_screen_body = 0.0
     
     #פונקציה לעדכון המסך כל שנייה
     def update_canvas():
@@ -2702,8 +2725,8 @@ def halacha_clock():
         
         hc_gra_method = f"({Halachic_method_GRA.get()}°)"
         hc_mga_method = f"({Halachic_method_MGA.get()}°)"
-        hc_gra_day = f":{print_day_or_night_GRA.get()}{reverse('שעון שעה זמנית - ')}"
-        hc_mga_day = f":{print_day_or_night_MGA.get()}{reverse('שעון שעה זמנית - ')}"
+        hc_gra_day = f"{print_day_or_night_GRA.get()}"
+        hc_mga_day = f"{print_day_or_night_MGA.get()}"
         
         # גובה ואזימוט שמש וירח ואחוז מהמסלול של הירח
         #hc_sun_alt = sun_alt.get()
@@ -2763,9 +2786,10 @@ def halacha_clock():
         canvas.itemconfig(minutes_in_gra_temporal_hour_id, text=hc_minutes_gra)
         canvas.itemconfig(gra_method_id, text=hc_gra_method)
         canvas.itemconfig(gra_temporal_hour_id, text=hc_clock_gra)
-        if add_labels:
-            canvas.itemconfig(gra_title_id, text=hc_gra_day)
-            canvas.itemconfig(mga_title_id, text=hc_mga_day)
+            
+        canvas.itemconfig(minutes_gra_label_id, text=f"({hc_gra_day}) {reverse('דקות לשעה')}" if is_add_labels else "")
+        canvas.itemconfig(minutes_mga_label_id, text=f"({hc_mga_day}) {reverse('דקות לשעה')}" if is_add_labels else "")
+        
         canvas.itemconfig(minutes_in_mga_temporal_hour_id, text=hc_minutes_mga)
         canvas.itemconfig(mga_method_id, text=hc_mga_method)
         canvas.itemconfig(mga_temporal_hour_id, text=hc_clock_mga)
@@ -2776,7 +2800,14 @@ def halacha_clock():
         canvas.itemconfig(moon_name_id, text=hc_body_name)
         canvas.itemconfig(moon_az_id, text=hc_body_az)
         canvas.itemconfig(moon_alt_id, text=hc_body_alt)
+        
+        # נניח שאתה רוצה לשנות את הגובה ל-150*scale
+        is_moon = (hc_body_name == hw_planets_names[0])
+
         canvas.itemconfig(moon_phase_id, text=hc_moon_phase_percent)
+        canvas.itemconfig(moon_phase_lable_id, state="normal" if is_moon else "hidden") 
+        canvas.itemconfig(moon_alt_lable_id, state="normal" if not is_moon and is_add_labels else "hidden")
+        
             
 
         global current_screen_hesberim, current_screen_zmanim, current_screen_zmanim_with_clocks
@@ -2792,27 +2823,57 @@ def halacha_clock():
                 
         ### הכנה לשורת שעונים. הרווחים הם בכוונה לצורך מירכוז בשעון ההלכה הפיזי
         clocks_string = f"{hc_magrab}  {hc_lmt}  {hc_lsot}  {hc_utc}"
-        #clocks_string = f"גריניץ  |  מקומי  |  מקומי-ממוצע  |  מהשקיעה"
+        
         # משתנה ששומר מערך זמנים שבו אחרי כל שורת זמן יש שורת שעונים וכך הזמנים והשעונים מוצגים לסירוגין
-        zmanim_with_clocks = [item for zman_line in zmanim_list for item in (zman_line, [reverse(clocks_string)])]
-        zmanim_with_clocks_string = reverse(zmanim_with_clocks[int(current_screen_zmanim_with_clocks)][0])
         zmanim_string = reverse(zmanim_list[int(current_screen_zmanim)][0])
         
-        # מציג בשורה את מה שכתוב בהגדרות שצריך להציג. ברירת המחדל היא זמנים עם שעונים
-        d_dict = {"zmanim_with_clocks": zmanim_with_clocks_string, "zmanim": zmanim_string, "clocks": clocks_string}
-        canvas.itemconfig(zmanim_with_clocks_id, text=d_dict.get(settings_dict["zmanim_mode"], zmanim_with_clocks_string))
+        mode = settings_dict["zmanim_mode"]
+
+        # ✅ לוגיקה מסונכרנת אמיתית עם speed_step
+        if mode == "zmanim":
+            display_text_for_zmanim_with_clocks_id = zmanim_string
+            is_showing_clocks = False
+
+        elif mode == "clocks":
+            display_text_for_zmanim_with_clocks_id = clocks_string
+            is_showing_clocks = True
+
+        else:  # zmanim_with_clocks
+            phase_index = int(current_screen_zmanim_with_clocks) % 2
+            if phase_index == 0:
+                display_text_for_zmanim_with_clocks_id = zmanim_string
+                is_showing_clocks = False
+            else:
+                display_text_for_zmanim_with_clocks_id = clocks_string
+                is_showing_clocks = True
+
+        canvas.itemconfig(zmanim_with_clocks_id, text=display_text_for_zmanim_with_clocks_id)
+        canvas.coords(zmanim_with_clocks_id, 160 * scale, (129 if is_showing_clocks else 133) * scale) # בכוונה לא עשיתי and is_add_labels
+
+        # הצגת תוויות רק כשצריך
+        for label_id in clocks_label_ids:
+            canvas.itemconfig(label_id, state="normal" if is_showing_clocks else "hidden") # בכוונה לא עשיתי and is_add_labels כי תווייות השעונים נצרכות תמיד
         
         
         # קידום בשלב אחד עבור הגדרת השרוה הבאה בסיבוב הבא
-        speed_step = 0.15 #מהירות ההחלפה כדלהלן: 0.15 = 6 שניות | 0.3 = 3 שניות | 0.45 = שנייה וחצי
+        speed_step = settings_dict["halacha_clock_speed_step"] #מהירות ההחלפה כדלהלן: 0.15 = 6 שניות | 0.3 = 3 שניות | 0.45 = שנייה וחצי
         current_screen_hesberim = (current_screen_hesberim + (speed_step * 2)) % len(hesberim)  # זה גורם מחזור של שניות לאיזה נתונים יוצגו במסך
         current_screen_zmanim = (current_screen_zmanim + speed_step) % len(zmanim_list)
-        current_screen_zmanim_with_clocks = (current_screen_zmanim_with_clocks + speed_step) % len(zmanim_with_clocks)
+        current_screen_zmanim_with_clocks = (current_screen_zmanim_with_clocks + speed_step) % 2 # כי יש שני מצבי תצוגה או זמנים או שעונים
+
+        
+        ###################################################################################
+        global current_screen_body
+                     
+        if is_show_planets:
+            body1.set(hw_planets_names[int(current_screen_body)])
+        else:
+            # אם רוצים להציג רק ירח ולא כוכבי לכת אחרים וכרגע מוגדר כוכב אחר - מגדירים על הירח 
+            if not is_moon:
+                body1.set(hw_planets_names[0])
+        # תמיד מקדמים קדימה את המונה        
+        current_screen_body = (current_screen_body + (speed_step * 0.7)) % len(hw_planets_names)
        
-        
-        
-        #############################################################################
-        #############################################################################
         #############################################################################
             
         
@@ -2828,7 +2889,7 @@ def halacha_clock():
         ####################################################################
         # כשהמונה מגיע ל- 45 מדמים לחיצה על מקש שיפט במקלדת כדי למנוע כיבוי אוטומטי  
         global counter_shift
-        if counter_shift >= 45:
+        if counter_shift >= 29:
             #print("counter_shift_press")
             keyboard = keyboard_Controller()
             keyboard.press(keyboard_Key.shift)
@@ -8796,8 +8857,11 @@ settings_dict = {
     "is_zoomed_screen": False,
     "start_halacha_clock": False,
     "halacha_clock_labels": True,
+    "halacha_clock_planets": True,
+    "halacha_clock_speed_step": 0.15,
 }
 
+# יצירת עותק של המילון המקורי עם ההגדרות הראשוניות כברירת מחדל
 default_settings_dict = dict(settings_dict)
 
 
@@ -8871,7 +8935,9 @@ def edit_settings():
         "is_language_hebrew": reverse("התוכנה תוצג בעברית"),
         "is_zoomed_screen": reverse("מסך מוגדל"),
         "start_halacha_clock": reverse("הפעלת שעון ההלכה בכניסה לתוכנה"),
-        "halacha_clock_labels": reverse("תוויות הסבר בשעון ההלכה"),
+        "halacha_clock_labels": reverse("להציג תוויות הסבר בשעון ההלכה"),
+        "halacha_clock_planets": reverse("שעון ההלכה מציג גם כוכבי לכת"),
+        "halacha_clock_speed_step": reverse("קצב התחלפות בשעון ההלכה"),
     }
 
     # -----------------------------
@@ -8905,6 +8971,8 @@ def edit_settings():
         "is_zoomed_screen": [True, False],
         "start_halacha_clock": [True, False],
         "halacha_clock_labels": [True, False],
+        "halacha_clock_planets": [True, False],
+        "halacha_clock_speed_step": [0.1, 0.15, 0.2]
     }
 
     entries = {}
@@ -8919,9 +8987,9 @@ def edit_settings():
             if key in ["hesberim_mode", "zmanim_mode"]:
                 # שמירה של הערך הפנימי לפי האינדקס
                 val = options_to_edit[key][selected_index]
-            elif key in ["is_language_hebrew", "is_zoomed_screen", "start_halacha_clock", "halacha_clock_labels"]:
+            elif key in ["is_language_hebrew", "is_zoomed_screen", "start_halacha_clock", "halacha_clock_labels", "halacha_clock_planets"]:
                 val = options_to_edit[key][selected_index]
-            elif key in ["rise_set_deg", "mga_deg", "hacochavim_deg", "misheiacir_deg", "default_location_index"]:
+            elif key in ["rise_set_deg", "mga_deg", "hacochavim_deg", "misheiacir_deg", "default_location_index", "halacha_clock_speed_step"]:
                 val_str = combo.get()
                 try:
                     val = float(val_str)
@@ -8954,7 +9022,7 @@ def edit_settings():
         ttk.Label(frame, text=display_name, width=25).pack(side="right")
 
         # בניית רשימת הערכים להצגה
-        if key in ["is_language_hebrew", "is_zoomed_screen", "start_halacha_clock", "halacha_clock_labels"]:
+        if key in ["is_language_hebrew", "is_zoomed_screen", "start_halacha_clock", "halacha_clock_labels", "halacha_clock_planets"]:
             display_values = [reverse(value_labels[v]) for v in options_to_edit[key]]
             display_val = reverse(value_labels.get(val, val))
         elif key in ["hesberim_mode", "zmanim_mode"]:
