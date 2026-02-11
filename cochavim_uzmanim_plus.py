@@ -574,7 +574,7 @@ cu_screenheight = 768
 cu_scaling = 1.32 # כנראה המקורי היה 1.3 אבל למעשה בחרתי 1.32 כי המקורי עשה בעיות וזה כנראה פועל היטב במחשבים גדולים
 
 # תאריך גרסת התוכנה הראשית
-cu_version_date = dt.date(2026,2,10)
+cu_version_date = dt.date(2026,2,11)
 
 # פונקצייה שמחזירה שם יחד עם מיקום של קובץ בתיקיית תוכנת כוכבים וזמנים
 '''
@@ -9175,62 +9175,182 @@ if __name__ == '__main__':
     mb_subprocess.menu.add_radiobutton ( label=reverse("יום הולדת עברי ובר מצווה") if is_heb else "Hebrew birthday and Bar-Mitzvah",variable=choice_subprocess, value="yom_huledet", command=open_subprocess)
     mb_subprocess.menu.add_radiobutton ( label=reverse("מידע על שנה עברית") if is_heb else "Information about Hebrew year",variable=choice_subprocess, value="heb_year_information", command=open_subprocess)
     
-    # תפריט לחצנים נוספים לאפשרויות נוספות
-    mb=  Menubutton ( date_time, text=reverse("אפשרויות נוספות") if is_heb else "More options", relief=RAISED ,bg="gray87")
+    # תפריט ראשי
+    mb = Menubutton(date_time, text=reverse("אפשרויות נוספות") if is_heb else "More options",
+                    relief=RAISED, bg="gray87")
     mb.grid(column=14, row=0, columnspan=1)
-    mb.menu =  Menu ( mb, tearoff = 0 )
-    mb["menu"] =  mb.menu
+
+    mb.menu = Menu(mb, tearoff=0)
+    mb["menu"] = mb.menu
     
+    #---------------------------
+    # הוספת שעון ההלכה על התפריט הראשי עצמו
+    mb.menu.add_command(
+        label=reverse("שעון ההלכה") if is_heb else "halacha_clock",
+        command=halacha_clock)
     
-     # הגדרת משתנה שמחזיק את הבחירה של הוספת מיקום חדש או מחיקת מיקום ועוד
+    # ----------------------------
+    # משתנים (כמו אצלך - לא שיניתי)
     choice_option = StringVar(ws)
-    
-    # משתנה עבור בחירת ייצוא לוח זמני הלכה חודשי/שנתי
     choice_zmanim_export = StringVar(ws)
-    
-    # משתנה עבור בחירת ייצוא לוח ראייות ירח ראשון/אחרון
     choice_moon_export = StringVar(ws)
-    
-    # הגדרת משתנה שמחזיק את הבחירה של תפריט הבחירה
     choice_print = StringVar(ws)
-    
-    mb.menu.add_command ( label=reverse("שעון ההלכה") if is_heb else "halacha_clock", command=halacha_clock)
-    mb.menu.add_command ( label=reverse("הגדרות") if is_heb else "settings", command=edit_settings)
-    mb.menu.add_command ( label=reverse("איפוס הגדרות") if is_heb else "reset settings", command=to_default_settings)
-    mb.menu.add_radiobutton ( label=reverse("רשימת כוכבי שֶׁבֶת ראשונים הנראים אחרי השקיעה") if is_heb else "List of first stars after sunset",variable=choice_print, value="STARS_EVENING", command=print_halachic_times )
-    mb.menu.add_radiobutton ( label=reverse("רשימת כוכבי שֶׁבֶת אחרונים הנראים לפני הזריחה") if is_heb else "List of last stars before sunset",variable=choice_print, value="STARS_MORNING", command=print_halachic_times )
-    mb.menu.add_radiobutton ( label=reverse("רשימת זמני היום") if is_heb else "List of day halachic times",variable=choice_print, value="ZMANIM", command=print_halachic_times )
-    mb.menu.add_radiobutton ( label=reverse("מידע ירח ראשון הבא") if is_heb else "Next first moon information",variable=choice_print, value="NEXT_NEW_MOON", command=print_halachic_times )
-    mb.menu.add_radiobutton ( label=reverse("מידע ירח אחרון הבא") if is_heb else "Next last! moon information",variable=choice_print, value="NEXT_LAST_MOON", command=print_halachic_times )
-    mb.menu.add_radiobutton ( label=reverse("מידע ירח ראשון הקודם") if is_heb else "Previous first moon information",variable=choice_print, value="PREVIOUS_NEW_MOON", command=print_halachic_times )
-    mb.menu.add_radiobutton ( label=reverse("מידע ירח אחרון הקודם") if is_heb else "Previous last! moon information",variable=choice_print, value="PREVIOUS_LAST_MOON", command=print_halachic_times )
-    mb.menu.add_radiobutton ( label=reverse("רשימת ראיות קרובות של תחנת החלל הבינלאומית") if is_heb else "ISS near sight list",variable=choice_print, value="ISS", command=print_halachic_times )
-    mb.menu.add_radiobutton ( label=reverse("מידע על כל הכוכבים") if is_heb else "all bodys info",variable=choice_print, value="ALL_BODYS_NOW", command=print_halachic_times )
-    #mb.menu.add_radiobutton ( label="בטא: מידע תקופת שמואל לשנה עברית המוצגת",variable=choice_print, value="TKUFA", command=print_halachic_times )
-    mb.menu.add_radiobutton ( label=reverse("צור קובץ זמנֵי-הלכה לחודש עברי המוצג") if is_heb else "Create halachic times file for Hebrew month shown",variable=choice_zmanim_export, value="HEB_MONTH", command=export_calendar_halacha_times )
-    mb.menu.add_radiobutton ( label=reverse("צור קובץ זמנֵי-הלכה לשנה עברית המוצגת") if is_heb else "Create halachic times file for Hebrew year shown",variable=choice_zmanim_export, value="HEB_YEAR", command=export_calendar_halacha_times )
-    mb.menu.add_radiobutton ( label=reverse("צור קובץ זמנֵי-הלכה לחודש גרגוריאני המוצג") if is_heb else "Create halachic times file for Gregorian month shown",variable=choice_zmanim_export, value="GREG_MONTH", command=export_calendar_halacha_times )
-    mb.menu.add_radiobutton ( label=reverse("צור קובץ זמנֵי-הלכה לשנה גרגוריאנית המוצגת") if is_heb else "Create halachic times file for Gregorian year shown",variable=choice_zmanim_export, value="GREG_YEAR", command=export_calendar_halacha_times )
-    mb.menu.add_radiobutton ( label=reverse("צור קובץ ראִיות ירח ראשון לשנה עברית המוצגת") if is_heb else "Create first moon file for Hebrew year shown",variable=choice_moon_export, value="FIRST", command=export_calendar_moons)
-    mb.menu.add_radiobutton ( label=reverse("צור קובץ ראִיות ירח אחרון! לשנה עברית המוצגת") if is_heb else "Create last! moon file for Hebrew year shown",variable=choice_moon_export, value="LAST", command=export_calendar_moons)
-    mb.menu.add_radiobutton ( label=reverse("הגדרת מיקום נוכחי כברירת מחדל") if is_heb else "Set current location as default",variable=choice_option,value="DEFAULT",command=edit_locations_file)
-    mb.menu.add_radiobutton ( label=reverse("הוספת מיקום חדש לקובץ המיקומים") if is_heb else "Add new location to locations file",variable=choice_option,value="ADD",command=add_new_location)
-    mb.menu.add_radiobutton ( label=reverse("מחיקת מיקום נוכחי מקובץ המיקומים") if is_heb else "Deleting current location from locations file",variable=choice_option,value="DELETE",command=edit_locations_file)
-    mb.menu.add_radiobutton ( label=reverse("מיון קובץ המיקומים לפי א-ב") if is_heb else "Sorting location file to A-B-C",variable=choice_option,value="SORT",command=edit_locations_file)
-    #mb.menu.add_command ( label="פתיחת קובץ המיקומים לצורך עריכתו", command=start_the_edited_locations_file)
-    mb.menu.add_command ( label=reverse("איפוס קובץ המיקומים למצבו ההתחלתי") if is_heb else "Reset the locations file", command=delete_edited_locations_file)
-    mb.menu.add_command ( label=reverse("פתיחת תיקיית כוכבים וזמנים") if is_heb else "Opening the cochavim uzmanim folder", command=start_cu_dir_path)
-    mb.menu.add_command ( label=reverse("בדיקה האם גרסת התוכנה עדכנית") if is_heb else "Checking software version update", command=is_cu_software_update)
-    mb.menu.add_command ( label=reverse("פתיחת אתר האינטרנט של תוכנת כוכבים וזמנים") if is_heb else "Opening cochavim uzmanim website", command=open_cu_website)
-    # הגדרות עבור קובץ אפאמאריס מורחב שאותו רוצים להוריד
+
+
+    # =========================================================
+    # 📅 תפריט זמנים יומיים וכוכבים
+    # =========================================================
+    menu_times = Menu(mb.menu, tearoff=0)
+    mb.menu.add_cascade(label=reverse("מידע על זמנים וכוכבים") if is_heb else "Times & Stars",
+                        menu=menu_times)
+
+    menu_times.add_radiobutton(
+        label=reverse("רשימת זמני היום") if is_heb else "List of day halachic times",
+        variable=choice_print, value="ZMANIM", command=print_halachic_times)
+
+    menu_times.add_radiobutton(
+        label=reverse("רשימת כוכבי שֶׁבֶת ראשונים הנראים אחרי השקיעה") if is_heb else "List of first stars after sunset",
+        variable=choice_print, value="STARS_EVENING", command=print_halachic_times)
+
+    menu_times.add_radiobutton(
+        label=reverse("רשימת כוכבי שֶׁבֶת אחרונים הנראים לפני הזריחה") if is_heb else "List of last stars before sunset",
+        variable=choice_print, value="STARS_MORNING", command=print_halachic_times)
+
+    menu_times.add_radiobutton(
+        label=reverse("מידע על כל הכוכבים") if is_heb else "all bodys info",
+        variable=choice_print, value="ALL_BODYS_NOW", command=print_halachic_times)
+
+    menu_times.add_radiobutton(
+        label=reverse("רשימת ראיות קרובות של תחנת החלל הבינלאומית") if is_heb else "ISS near sight list",
+        variable=choice_print, value="ISS", command=print_halachic_times)
+
+
+    # =========================================================
+    # 🌙 תפריט ירח
+    # =========================================================
+    menu_moon = Menu(mb.menu, tearoff=0)
+    mb.menu.add_cascade(label=reverse("מידע על ראיית הירח") if is_heb else "Moon",
+                        menu=menu_moon)
+
+    menu_moon.add_radiobutton(
+        label=reverse("מידע ירח ראשון הבא") if is_heb else "Next first moon information",
+        variable=choice_print, value="NEXT_NEW_MOON", command=print_halachic_times)
+
+    menu_moon.add_radiobutton(
+        label=reverse("מידע ירח אחרון הבא") if is_heb else "Next last moon information",
+        variable=choice_print, value="NEXT_LAST_MOON", command=print_halachic_times)
+
+    menu_moon.add_radiobutton(
+        label=reverse("מידע ירח ראשון הקודם") if is_heb else "Previous first moon information",
+        variable=choice_print, value="PREVIOUS_NEW_MOON", command=print_halachic_times)
+
+    menu_moon.add_radiobutton(
+        label=reverse("מידע ירח אחרון הקודם") if is_heb else "Previous last moon information",
+        variable=choice_print, value="PREVIOUS_LAST_MOON", command=print_halachic_times)
+
+
+    # =========================================================
+    # 📤 תפריט ייצוא קבצים
+    # =========================================================
+    menu_export = Menu(mb.menu, tearoff=0)
+    mb.menu.add_cascade(label=reverse("ייצוא קבצים גדולים לשימוש אישי בלבד") if is_heb else "Export Files",
+                        menu=menu_export)
+
+    menu_export.add_radiobutton(
+        label=reverse("צור קובץ זמנֵי-הלכה לחודש עברי המוצג") if is_heb else "Create halachic times file for Hebrew month shown",
+        variable=choice_zmanim_export, value="HEB_MONTH", command=export_calendar_halacha_times)
+
+    menu_export.add_radiobutton(
+        label=reverse("צור קובץ זמנֵי-הלכה לשנה עברית המוצגת") if is_heb else "Create halachic times file for Hebrew year shown",
+        variable=choice_zmanim_export, value="HEB_YEAR", command=export_calendar_halacha_times)
+
+    menu_export.add_radiobutton(
+        label=reverse("צור קובץ זמנֵי-הלכה לחודש גרגוריאני המוצג") if is_heb else "Create halachic times file for Gregorian month shown",
+        variable=choice_zmanim_export, value="GREG_MONTH", command=export_calendar_halacha_times)
+
+    menu_export.add_radiobutton(
+        label=reverse("צור קובץ זמנֵי-הלכה לשנה גרגוריאנית המוצגת") if is_heb else "Create halachic times file for Gregorian year shown",
+        variable=choice_zmanim_export, value="GREG_YEAR", command=export_calendar_halacha_times)
+
+    menu_export.add_radiobutton(
+        label=reverse("צור קובץ ראִיות ירח ראשון לשנה עברית המוצגת") if is_heb else "Create first moon file for Hebrew year shown",
+        variable=choice_moon_export, value="FIRST", command=export_calendar_moons)
+
+    menu_export.add_radiobutton(
+        label=reverse("צור קובץ ראִיות ירח אחרון לשנה עברית המוצגת") if is_heb else "Create last moon file for Hebrew year shown",
+        variable=choice_moon_export, value="LAST", command=export_calendar_moons)
+
+
+    # =========================================================
+    # 📍 תפריט מיקומים
+    # =========================================================
+    menu_locations = Menu(mb.menu, tearoff=0)
+    mb.menu.add_cascade(label=reverse("מיקומים: הוספה טיפול והגדרה") if is_heb else "Locations",
+                        menu=menu_locations)
+
+    menu_locations.add_radiobutton(
+        label=reverse("הגדרת מיקום נוכחי כברירת מחדל") if is_heb else "Set current location as default",
+        variable=choice_option, value="DEFAULT", command=edit_locations_file)
+
+    menu_locations.add_radiobutton(
+        label=reverse("הוספת מיקום חדש לקובץ המיקומים") if is_heb else "Add new location to locations file",
+        variable=choice_option, value="ADD", command=add_new_location)
+
+    menu_locations.add_radiobutton(
+        label=reverse("מחיקת מיקום נוכחי מקובץ המיקומים") if is_heb else "Deleting current location from locations file",
+        variable=choice_option, value="DELETE", command=edit_locations_file)
+
+    menu_locations.add_radiobutton(
+        label=reverse("מיון קובץ המיקומים לפי א-ב") if is_heb else "Sorting location file to A-B-C",
+        variable=choice_option, value="SORT", command=edit_locations_file)
+
+    menu_locations.add_command(
+        label=reverse("איפוס קובץ המיקומים למצבו ההתחלתי") if is_heb else "Reset the locations file",
+        command=delete_edited_locations_file)
+
+
+    # =========================================================
+    # ⚙ מערכת ועדכונים
+    # =========================================================
+    menu_system = Menu(mb.menu, tearoff=0)
+    mb.menu.add_cascade(label=reverse("הגדרות כלליות, מערכת, ועדכונים") if is_heb else "System & Updates",
+                        menu=menu_system)
+
+    menu_system.add_command(
+        label=reverse("הצגה ושינוי של ההגדרות הכלליות") if is_heb else "settings",
+        command=edit_settings)
+
+    menu_system.add_command(
+        label=reverse("איפוס ההגדרות הכלליות") if is_heb else "reset settings",
+        command=to_default_settings)
+
+    menu_system.add_command(
+        label=reverse("פתיחת תיקיית כוכבים וזמנים") if is_heb else "Opening the cochavim uzmanim folder",
+        command=start_cu_dir_path)
+
+    menu_system.add_command(
+        label=reverse("בדיקה האם גרסת התוכנה עדכנית") if is_heb else "Checking software version update",
+        command=is_cu_software_update)
+
+    menu_system.add_command(
+        label=reverse("פתיחת אתר האינטרנט של תוכנת כוכבים וזמנים") if is_heb else "Opening cochavim uzmanim website",
+        command=open_cu_website)
+
     de441s_url = "https://github.com/sgbmzm/cochavim-uzmanim/releases/download/cochavim_uzmanim_plus/de441s.bsp"
     de441s_file_name = "de441s.bsp"
-    mb.menu.add_command ( label=reverse("הורדת de441s.bsp") if is_heb else "Downloading de441s.bsp", command= lambda: downloading_files(de441s_url,de441s_file_name))
-    # אם זו גרסת תוכנה שאינה מותקנת הוספת כפתור התקנה
+
+    menu_system.add_command(
+        label=reverse("הורדת de441s.bsp") if is_heb else "Downloading de441s.bsp",
+        command=lambda: downloading_files(de441s_url, de441s_file_name))
+
     if not is_installed:
-        mb.menu.add_command ( label=reverse("התקנה קבועה של תוכנת כוכבים וזמנים") if is_heb else "Installation of cochavim uzmanim", command=install_cu)
-    mb.menu.add_command ( label=reverse("מידע: סולם הזמן הנוכחי והסטייה השנתית שלו") if is_heb else "information: current timescale and its annual deviation", command=time_scale_showinfo)
-    
+        menu_system.add_command(
+            label=reverse("התקנה קבועה של תוכנת כוכבים וזמנים") if is_heb else "Installation of cochavim uzmanim",
+            command=install_cu)
+
+    menu_system.add_command(
+        label=reverse("מידע: סולם הזמן הנוכחי והסטייה השנתית שלו") if is_heb else "information: current timescale and its annual deviation",
+        command=time_scale_showinfo)
     #----------------------------------
 
     
