@@ -8,7 +8,7 @@ a = Analysis(
     ['cochavim_uzmanim_plus.py'],
     pathex=[],
     binaries=[],
-    datas=[('cu_icon.png', '.'), ('cochavim_uzmanim_plus.py', '.'), ('cu_locations.csv', '.'), ('cu_stars.csv', '.'), ('cu_splash.jpg', '.'), ('de440.bsp', '.'), ('skyfield', 'skyfield'),],
+    datas=[('cu_icon.png', '.'), ('cochavim_uzmanim_plus.py', '.'), ('cu_locations.csv', '.'), ('cu_stars.csv', '.'), ('cu_splash.png', '.'), ('de440.bsp', '.'), ('skyfield', 'skyfield'),],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -21,7 +21,7 @@ a = Analysis(
 )
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 splash = Splash(
-    'cu_splash.jpg',
+    'cu_splash.png',
     binaries=a.binaries,
     datas=a.datas,
     text_pos=(10, 50),
@@ -60,5 +60,6 @@ coll = COLLECT(
     upx_exclude=[],
     name='cochavim_uzmanim_plus_dir',
 )
+
 
 
