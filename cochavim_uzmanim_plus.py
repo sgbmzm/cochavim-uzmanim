@@ -361,10 +361,10 @@ import math
 import time as pytime # לעבודה עם זמנים בשניות מאז Epoch. בכוונה נתתי שם pytime כי יש בקוד שלי כמה משתנים בשם time
 import datetime as dt
 from datetime import datetime, timedelta, date
-from pytz import timezone
-import pytz
+#from pytz import timezone
+#import pytz
 # בעתיד אולי נשתמש לאיזורי זמן ב 
-#from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo
 
 import calendar
 
@@ -876,7 +876,7 @@ def skyfield_to_cu_time(skyfield_time, requested_timezone):
      
     a = skyfield_time.ut1_calendar()
     
-    return datetime(a[0], a[1], a[2], a[3], a[4], int(a[5]), int((a[5] % 1) * 1e6), tzinfo=pytz.utc).astimezone(requested_timezone) if is_ut1 else skyfield_time.astimezone(requested_timezone)
+    return datetime(a[0], a[1], a[2], a[3], a[4], int(a[5]), int((a[5] % 1) * 1e6), tzinfo=ZoneInfo("UTC")).astimezone(requested_timezone) if is_ut1 else skyfield_time.astimezone(requested_timezone)
 
 # פונקציה מאוד חשובה שמקבלת זמן בפורמט רגיל הכולל בתוכו את איזור הזמן שלו, ומוציאה זמן בפורמט סקייפילד
 def cu_to_skyfield_time(cu_time):
@@ -885,7 +885,7 @@ def cu_to_skyfield_time(cu_time):
     
     # המרת הזמן בחזרה מאיזור הזמן המקומי לאיזור הזמן של גריניץ כי כל חישובי סקייפילד הם במקור רק על אזור זמן גריניץ
     # אולי צריך להוסיף קודם בדיקה האם קיים איזור זמן כלומר שזה לא none###########
-    cu_time = cu_time.astimezone(timezone('utc'))
+    cu_time = cu_time.astimezone(ZoneInfo("UTC"))
     
     return ts.ut1(cu_time.year, cu_time.month, cu_time.day, cu_time.hour, cu_time.minute, cu_time.second+cu_time.microsecond/1e6) if is_ut1 else ts.from_datetime(cu_time)
 
@@ -1338,7 +1338,7 @@ def calculate_transits_and_equation_of_time(time,location,location_timezone):
     #-----------
     # חישוב משוואת הזמן
     # חישוב חצות האמיתי באיזה שעה הוא בשעון מקומי ממוצע
-    transit_lmt = localmeantime(day_transit.astimezone(timezone('utc')),location.longitude.degrees)
+    transit_lmt = localmeantime(day_transit.astimezone(ZoneInfo("UTC")), location.longitude.degrees)
     
     # הגדרת זמן של 12 בצהריים בדיוק מפני ששעה זו אמורה להיות שעת חצות בממוצע שנתי כשסולם הזמן מכוון כראוי
     #transit_mean = transit_lmt.replace(hour=12, minute=0, second=0, microsecond=0)
@@ -3314,7 +3314,7 @@ def time_location_timezone():
         timezone_location_name = f"Etc/GMT-{utc_different}" if location.longitude.degrees >= 0 else f"Etc/GMT+{utc_different}"
     
     # הגדרת איזור הזמן לפי שם איזור הזמן שנקבע
-    location_timezone = timezone(timezone_location_name)
+    location_timezone = ZoneInfo(timezone_location_name)
     ###################################################################################    
             
     
@@ -3351,7 +3351,7 @@ def time_location_timezone():
     else:
         
         # בכוונה תחילה עשיתי את החישוב שאינו רציף בלוקליז ולא באסטימזון להיפך מבמצב של עכשיו מתעדכן וראו שם לעיל
-        time = location_timezone.localize(input_date_time)
+        time = input_date_time.replace(tzinfo=location_timezone)
         #####################################################
         # אני לא מבין למה אבל כאן עובד דווקא החישוב כמו בשורה הקודמת בלי המרה מ-יו.טי.סי. ל- יו.טי.1 ולכן כאן !אסור! להפעיל את השורה הבאה
         #time = skyfield_to_cu_time(ts.from_datetime(time), location_timezone)
@@ -3647,7 +3647,7 @@ def all_calculations():
         # שימו לב: שעון מקומי ממוצע מודפס בפונקציית אול_כלכוליישנס כי חישובו לא תלוי בחישוב חצות ולכן אין צורך לעשות לו ניסיון
            
         # חישוב השעה בשעון גריניץ לצורך חישוב שעון מקומי ממוצע
-        utc_time = time.astimezone(timezone('utc'))
+        utc_time = time.astimezone(ZoneInfo("UTC"))
         ###########################
         # אני לא מבין למה אבל כאן עובד דווקא החישוב כמו בשורה הקודמת בלי המרה מ-יו.טי.סי. ל- יו.טי.1 ולכן אסור להפעיל את השורה הבאה
         #utc_time = skyfield_to_cu_time(ts.from_datetime(time), location_timezone)
@@ -3692,7 +3692,7 @@ def all_calculations():
     
     # חישוב השעה בשעון גריניץ, והדפסתה
     # הזמן באיזור הזמן גרינץ
-    utc_time = time.astimezone(timezone('utc'))
+    utc_time = time.astimezone(ZoneInfo("UTC"))
     print_utc_time.set(f'{utc_time:%H:%M:%S}')
     
     # קריאה לפונקציית חישוב שעון מקומי ממוצע, והדפסתו
