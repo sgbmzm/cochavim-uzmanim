@@ -574,7 +574,7 @@ cu_screenheight = 768
 cu_scaling = 1.32 # כנראה המקורי היה 1.3 אבל למעשה בחרתי 1.32 כי המקורי עשה בעיות וזה כנראה פועל היטב במחשבים גדולים
 
 # תאריך גרסת התוכנה הראשית
-cu_version_date = dt.date(2026,2,11)
+cu_version_date = dt.date(2026,2,12)
 
 # פונקצייה שמחזירה שם יחד עם מיקום של קובץ בתיקיית תוכנת כוכבים וזמנים
 '''
@@ -1327,14 +1327,14 @@ def calculate_transits_and_equation_of_time(time,location,location_timezone):
     time_6 = time.replace(hour=6, minute=0, second=0, microsecond=0)
     
     # חישוב חצות היום והלילה בחיפוש בין שש בבוקר לשש בבוקר למחורת: נזכיר כי הזמן הוא כבר בשעון מקומי
-    meridian_transit = almanac.meridian_transits(eph, eph["sun"], location)
-    transit, y = almanac.find_discrete(cu_to_skyfield_time(time_6), cu_to_skyfield_time(time_6 + dt.timedelta(hours=24)), meridian_transit)
-    day_transit = skyfield_to_cu_time(transit[0], location_timezone)
-    night_transit = skyfield_to_cu_time(transit[1], location_timezone)
-    # אם רוצים רק טרנזיט של היום בשיטה החדשה של סקייפילד
-    #transit = almanac.find_transits(eph['earth'] + location, eph['sun'], cu_to_skyfield_time(time_6), cu_to_skyfield_time(time_6 + dt.timedelta(hours=24)))
+    #meridian_transit = almanac.meridian_transits(eph, eph["sun"], location)
+    #transit, y = almanac.find_discrete(cu_to_skyfield_time(time_6), cu_to_skyfield_time(time_6 + dt.timedelta(hours=24)), meridian_transit)
     #day_transit = skyfield_to_cu_time(transit[0], location_timezone)
-    
+    #night_transit = skyfield_to_cu_time(transit[1], location_timezone)
+    # אם רוצים רק טרנזיט של היום בשיטה החדשה של סקייפילד שעובדת גם בקוטב לפי אזימוט 180 אבל לא מחשבת חצות הלילה
+    transit = almanac.find_transits(eph['earth'] + location, eph['sun'], cu_to_skyfield_time(time_6), cu_to_skyfield_time(time_6 + dt.timedelta(hours=24)))
+    day_transit = skyfield_to_cu_time(transit[0], location_timezone)
+    night_transit = day_transit+dt.timedelta(hours=12) # בשיטה החדשה שאין חצות הלילה אני מחשב לפי 12 שעות אחרי חצות היום.
     #-----------
     # חישוב משוואת הזמן
     # חישוב חצות האמיתי באיזה שעה הוא בשעון מקומי ממוצע
@@ -2623,53 +2623,56 @@ def halacha_clock():
     
     
     # איזור כותרת
-    canvas.create_text(160 * scale, 10 * scale, text=reverse("שעון ההלכה                                      כוכבים וזמנים"), fill="turquoise", font=scaled_font("miriam", 10, "bold"))
+    #canvas.create_text(158 * scale, 10 * scale, text=reverse("שעון ההלכה                                          כוכבים וזמנים"), fill="turquoise", font=scaled_font("miriam", 10))
+    canvas.create_text(50 * scale, 10 * scale, text=reverse("כוכבים וזמנים"), fill="turquoise", font=scaled_font("miriam", 10))
+    canvas.create_text(270 * scale, 10 * scale, text=reverse("שעון ההלכה"), fill="turquoise", font=scaled_font("miriam", 10))
+    
     city_id = canvas.create_text(160 * scale, 10 * scale, text="", fill=hw_green, font=scaled_font("miriam", 12, "bold"))
     # איזור תאריך עברי
-    heb_date_rect_id = canvas.create_rectangle(0, 21 * scale, screen_width, 38 * scale, fill="black")
-    heb_date_id = canvas.create_text(160 * scale, 28 * scale, text="", fill="white", font=scaled_font("miriam", 14, "bold"))
+    heb_date_rect_id = canvas.create_rectangle(0, 20 * scale, screen_width, 38 * scale, fill="black")
+    heb_date_id = canvas.create_text(160 * scale, 27 * scale, text="", fill="white", font=scaled_font("miriam", 14, "bold"))
     holiday_id = canvas.create_text(160 * scale, 40 * scale, text="", fill=hw_dim_magenta, font=scaled_font("miriam", 8, "bold"))
-    canvas.create_line(0, 43 * scale, screen_width, 43 * scale, fill="yellow")
+    canvas.create_line(0, 42 * scale, screen_width, 42 * scale, fill="yellow")
 
     # איזור שעה זמנית גרא ומגא
-    canvas.create_text(300 * scale, 51 * scale, text=reverse("גרא"), fill="white", font=scaled_font("miriam", 13))
+    canvas.create_text(300 * scale, 50 * scale, text=reverse("גרא"), fill="white", font=scaled_font("miriam", 13))
     minutes_gra_label_id = canvas.create_text(300 * scale, 77 * scale, text="", fill="turquoise", font=scaled_font("miriam", 4))
     if is_add_labels:
         canvas.create_text(201 * scale, 47 * scale, text=reverse('שעון שעה זמנית'), fill="turquoise", font=scaled_font("miriam", 4))
-    gra_method_id = canvas.create_text(300 * scale, 60 * scale, text="", fill=hw_dim_magenta, font=scaled_font("miriam", 5))
+    gra_method_id = canvas.create_text(300 * scale, 59 * scale, text="", fill=hw_dim_magenta, font=scaled_font("miriam", 5))
     minutes_in_gra_temporal_hour_id = canvas.create_text(300 * scale, 70 * scale, text="", fill="turquoise", font=scaled_font("miriam", 10))
     gra_temporal_hour_id = canvas.create_text(208 * scale, 66 * scale, text="", fill=hw_green, font=scaled_font("miriam", 30, "bold"))
     
     left_x = 117
-    canvas.create_text(left_x * scale, 51 * scale, text=reverse("מגא"), fill="white", font=scaled_font("miriam", 13))
+    canvas.create_text(left_x * scale, 50 * scale, text=reverse("מגא"), fill="white", font=scaled_font("miriam", 13))
     minutes_mga_label_id = canvas.create_text(left_x * scale, 77 * scale, text="", fill="turquoise", font=scaled_font("miriam", 4))
     if is_add_labels:
         canvas.create_text(50 * scale, 47 * scale, text=reverse('שעון שעה זמנית'), fill="turquoise", font=scaled_font("miriam", 4))
-    mga_method_id = canvas.create_text(left_x * scale, 60 * scale, text="", fill=hw_dim_magenta, font=scaled_font("miriam", 5))
+    mga_method_id = canvas.create_text(left_x * scale, 59 * scale, text="", fill=hw_dim_magenta, font=scaled_font("miriam", 5))
     minutes_in_mga_temporal_hour_id = canvas.create_text(left_x * scale, 70 * scale, text="", fill="turquoise", font=scaled_font("miriam", 10))
     mga_temporal_hour_id = canvas.create_text(50 * scale, 65 * scale, text="", fill=hw_green, font=scaled_font("miriam", 20, "bold"))
-    canvas.create_line(0, 80 * scale, screen_width, 80 * scale, fill="yellow")
+    canvas.create_line(0, 79 * scale, screen_width, 79 * scale, fill="yellow")
 
     # איזור מידע על שמש וירח
-    canvas.create_text(300 * scale, 88 * scale, text=reverse("שמש"), fill="white", font=scaled_font("miriam", 13))
+    canvas.create_text(300 * scale, 87 * scale, text=reverse("שמש"), fill="white", font=scaled_font("miriam", 13))
     sun_az_id = canvas.create_text(300 * scale, 115 * scale, text="", fill="turquoise", font=scaled_font("miriam", 10))
     canvas.create_text(300 * scale, 99 * scale,text="◆",fill=hw_green,font=scaled_font("miriam", 5))
 
     if is_add_labels:
         canvas.create_text(200 * scale, 85 * scale, text=reverse("גובה (מהאופק):"), fill="turquoise", font=scaled_font("miriam", 4))
         canvas.create_text(300 * scale, 107 * scale, text=reverse("אַזִימוּט:"), fill="turquoise", font=scaled_font("miriam", 4))
-    sun_alt_id = canvas.create_text(209 * scale, 106 * scale, text="", fill=hw_green, font=scaled_font("miriam", 30, "bold"))
+    sun_alt_id = canvas.create_text(209 * scale, 107 * scale, text="", fill=hw_green, font=scaled_font("miriam", 30, "bold"))
 
-    moon_name_id = canvas.create_text(left_x * scale, 88 * scale, text=reverse("ירח"), fill="white", font=scaled_font("miriam", 13))
+    moon_name_id = canvas.create_text(left_x * scale, 87 * scale, text=reverse("ירח"), fill="white", font=scaled_font("miriam", 13))
     if is_add_labels:
         canvas.create_text(left_x * scale, 107 * scale, text=reverse("אַזִימוּט:"), fill="turquoise", font=scaled_font("miriam", 4))
-    moon_phase_lable_id = canvas.create_text(75 * scale, 88 * scale, text=reverse("מסלול \nחודשי:"), fill="turquoise", font=scaled_font("miriam", 4))
+    moon_phase_lable_id = canvas.create_text(77 * scale, 88 * scale, text=reverse("מסלול \nחודשי:"), fill="turquoise", font=scaled_font("miriam", 4))
     moon_alt_lable_id = canvas.create_text(50 * scale, 90 * scale, text=reverse("גובה (מהאופק):"), fill="turquoise", font=scaled_font("miriam", 4))
     moon_az_id = canvas.create_text(left_x * scale, 115 * scale, text="", fill="turquoise", font=scaled_font("miriam", 10))
     canvas.create_text(left_x * scale, 99 * scale,text="◆",fill=hw_green,font=scaled_font("miriam", 5))
 
     moon_alt_id = canvas.create_text(50 * scale, 109 * scale, text="", fill=hw_green, font=scaled_font("miriam", 20, "bold"))
-    moon_phase_id = canvas.create_text(40 * scale, 89 * scale, text="", fill="turquoise", font=scaled_font("miriam", 14, "bold"))
+    moon_phase_id = canvas.create_text(40 * scale, 88 * scale, text="", fill="turquoise", font=scaled_font("miriam", 14))
     canvas.create_line(0, 120 * scale, screen_width, 120 * scale, fill="yellow")
 
     # איזור מתחלף: זמנים בשעון רגיל ושעונים נוספים
@@ -2679,8 +2682,8 @@ def halacha_clock():
     clocks_labels_y = 140
     clocks_label_ids = [
         canvas.create_text(280 * scale, clocks_labels_y * scale, text=reverse("השעה בגריניץ (utc)"), fill="turquoise", font=scaled_font("miriam", 4)),
-        canvas.create_text(200 * scale, clocks_labels_y * scale, text=reverse("שעון מקומי: חצות אמיתי"), fill="turquoise", font=scaled_font("miriam", 4)),
-        canvas.create_text(120 * scale, clocks_labels_y * scale, text=reverse("שעון מקומי: חצות ממוצע"), fill="turquoise", font=scaled_font("miriam", 4)),
+        canvas.create_text(200 * scale, clocks_labels_y * scale, text=reverse("שעון מקומי (חצות אמיתי)"), fill="turquoise", font=scaled_font("miriam", 4)),
+        canvas.create_text(120 * scale, clocks_labels_y * scale, text=reverse("שעון מקומי (חצות ממוצע)"), fill="turquoise", font=scaled_font("miriam", 4)),
         canvas.create_text(40 * scale, clocks_labels_y * scale, text=reverse("שעות מהשקיעה (מַגְרַבּ)"), fill="turquoise", font=scaled_font("miriam", 4)),
     ]
     
@@ -2821,48 +2824,70 @@ def halacha_clock():
         canvas.itemconfig(info_id, text=CCC if is_heb else "information") # אפשר להשמיט את fill="violet" ואז הטקסט יהיה לבן כמו שהוגדר לעיל
        
                 
-        ### הכנה לשורת שעונים. הרווחים הם בכוונה לצורך מירכוז בשעון ההלכה הפיזי
+        ### הכנה לשורת שעונים
         clocks_string = f"{hc_magrab}  {hc_lmt}  {hc_lsot}  {hc_utc}"
         
-        # משתנה ששומר מערך זמנים שבו אחרי כל שורת זמן יש שורת שעונים וכך הזמנים והשעונים מוצגים לסירוגין
-        zmanim_string = reverse(zmanim_list[int(current_screen_zmanim)][0])
-        
+        # האם מציגים שעונים, זמנים, או משולב גם וגם
         mode = settings_dict["zmanim_mode"]
+        # קצב מהירות התחלפות האיברים בהסברים בשעונים ובזמנים
+        speed_step = settings_dict["halacha_clock_speed_step"]
 
-        # ✅ לוגיקה מסונכרנת אמיתית עם speed_step
+        # מכפלות מהירות לכל מצב
+        mult_zmanim = 1
+        mult_zmanim_with_clocks = 1.56 #70 שניות: 2 | 90 שניות: 1.56 | 120 שניות: 1.17 | 140 שניות: 1
+
+
+        # =========================
+        # תצוגה
+        # =========================
+
         if mode == "zmanim":
-            display_text_for_zmanim_with_clocks_id = zmanim_string
+
+            zman_index = int(current_screen_zmanim) % len(zmanim_list)
+            display_text_for_zmanim_with_clocks_id = reverse(zmanim_list[zman_index][0])
             is_showing_clocks = False
 
+
         elif mode == "clocks":
+
             display_text_for_zmanim_with_clocks_id = clocks_string
             is_showing_clocks = True
 
+
         else:  # zmanim_with_clocks
+
             phase_index = int(current_screen_zmanim_with_clocks) % 2
+            zman_index = (int(current_screen_zmanim_with_clocks) // 2) % len(zmanim_list)
+
             if phase_index == 0:
-                display_text_for_zmanim_with_clocks_id = zmanim_string
+                display_text_for_zmanim_with_clocks_id = reverse(zmanim_list[zman_index][0])
                 is_showing_clocks = False
             else:
                 display_text_for_zmanim_with_clocks_id = clocks_string
                 is_showing_clocks = True
 
+
         canvas.itemconfig(zmanim_with_clocks_id, text=display_text_for_zmanim_with_clocks_id)
-        canvas.coords(zmanim_with_clocks_id, 160 * scale, (129 if is_showing_clocks else 133) * scale) # בכוונה לא עשיתי and is_add_labels
+        canvas.coords(zmanim_with_clocks_id, 160 * scale, (129 if is_showing_clocks else 133) * scale)
 
-        # הצגת תוויות רק כשצריך
         for label_id in clocks_label_ids:
-            canvas.itemconfig(label_id, state="normal" if is_showing_clocks else "hidden") # בכוונה לא עשיתי and is_add_labels כי תווייות השעונים נצרכות תמיד
-        
-        
-        # קידום בשלב אחד עבור הגדרת השרוה הבאה בסיבוב הבא
-        speed_step = settings_dict["halacha_clock_speed_step"] #מהירות ההחלפה כדלהלן: 0.15 = 6 שניות | 0.3 = 3 שניות | 0.45 = שנייה וחצי
-        current_screen_hesberim = (current_screen_hesberim + (speed_step * 2)) % len(hesberim)  # זה גורם מחזור של שניות לאיזה נתונים יוצגו במסך
-        current_screen_zmanim = (current_screen_zmanim + speed_step) % len(zmanim_list)
-        current_screen_zmanim_with_clocks = (current_screen_zmanim_with_clocks + speed_step) % 2 # כי יש שני מצבי תצוגה או זמנים או שעונים
+            canvas.itemconfig(label_id, state="normal" if is_showing_clocks else "hidden")
 
-        
+
+        # =========================
+        # קידום מונים
+        # =========================
+
+        current_screen_hesberim = (current_screen_hesberim + (speed_step * 2)) % len(hesberim)
+
+        if mode == "zmanim":
+            current_screen_zmanim = (current_screen_zmanim + (speed_step * mult_zmanim)) % len(zmanim_list)
+
+        elif mode == "zmanim_with_clocks":
+            current_screen_zmanim_with_clocks = (current_screen_zmanim_with_clocks + (speed_step * mult_zmanim_with_clocks)) % (len(zmanim_list) * 2)
+     
         ###################################################################################
+        # התקדמות הצגת והלפת כוכבי הלכת המוצגים
         global current_screen_body
                      
         if is_show_planets:
@@ -3559,17 +3584,21 @@ def all_calculations():
         
         # שימו לב שהזמנים הם לפי המעלות המוגדרות בהגדרות לזריחה לשקיעה למשיכיר לצאת גאונים וכו
         # עושים כאן רוורס לזמנים עצמם כי אחר כך עושים רוורס לכל מערך הזמנים
+        # עדיין יש בעיה אם בוחרים בשיטת רבינו תם 16 בבוקר ו- 4 בערב
         zmanim_list = [
             #["זמנים בשעון רגיל - וכן שעונים כדלהלן"],
-            [f"עלות: {reverse(format_dt(Today_SR_MGA))}  |  משיכיר: {reverse(format_dt(misheiakir))}"], 
-            [f"זריחה גרא: {reverse(format_dt(Today_SR))}"],
+            [f"עלות השחר:   {reverse(format_dt(Today_SR_MGA))}   ({reverse(Halachic_method_MGA.get())})"],
+            [f"זמן ציצית (משיכיר):   {reverse(format_dt(misheiakir))}   ({reverse(settings_dict['misheiacir_deg'])})"],
+            [f"זריחה:   {reverse(format_dt(Today_SR))}   ({reverse(Halachic_method_GRA.get())})"],
             [f"סוף שמע: מגא - {reverse(format_dt(sozkash_mga))}, גרא - {reverse(format_dt(sozkash_gra))}"], 
             [f"סוז''ת: מגא - {reverse(format_dt(sozat_mga))}, גרא - {reverse(format_dt(sozat_gra))}"],
-            [f"חצות היום - וכנגדו בלילה: {reverse(format_dt(day_transit))}"], # או טיפה פחות מדוייק: format_dt(chatzot)
+            [f"חצות היום (וכנגדו בלילה): {reverse(format_dt(day_transit))}"], # שמש באזימוט 180. או טיפה פחות מדוייק: format_dt(chatzot)
             [f"מנחה: גדולה - {reverse(format_dt(mincha_gedola))}, קטנה - {reverse(format_dt(mincha_ketana))}"],
             [f"פלג המנחה - {reverse(format_dt(pelag_hamincha))}"],
-            [f"שקיעה גרא: {reverse(format_dt(Today_SS))}"],
-            [f"כוכבים: גאונים - {reverse(format_dt(tset_hacochavim_geonim))}, רת - {reverse(format_dt(Today_SS_MGA))}"],
+            [f"שקיעה:   {reverse(format_dt(Today_SS))}   ({reverse(Halachic_method_GRA.get())})"],
+            [f"צאת הכוכבים:   {reverse(format_dt(tset_hacochavim_geonim))}   ({reverse(settings_dict['hacochavim_deg'])})"],
+            [f"רבינו תם:   {reverse(format_dt(Today_SS_MGA))}   ({reverse(Halachic_method_MGA.get())})"],
+                       
         ]
         
               
@@ -3607,7 +3636,7 @@ def all_calculations():
         # החזרת והדפסת סטרינג מעוצב של שעות דקות ושניות שעברו מהשקיעה באמצעות פונקציית המרת שנייות
         print_hours_from_last_sunset.set(convert_seconds(seconds_from_last_sunset, to_hours=True))
     else:
-        print_hours_from_last_sunset.set("שגיאה")
+        print_hours_from_last_sunset.set("-- : -- : --")
 
     ####################################################################
     
@@ -3639,8 +3668,8 @@ def all_calculations():
         print_equation_of_time.set(str_equation_of_time)
         
     else:
-        print_LSoT_time.set("שגיאה")
-        print_equation_of_time.set("שגיאה")
+        print_LSoT_time.set("-- : -- : --")
+        print_equation_of_time.set("-- : --")
 
     ######################################################
      
@@ -3746,28 +3775,28 @@ def all_calculations():
     # הגדרת חג קטן עבור חול המועד ראש חודש ותעניות
     is_lite_holiday = (holiday_name and not is_yom_tov) or is_rosh_chodesh or is_taanit
     
-    global HEB_DATE_FG, HEB_DATE_BG
-    # קביעת קוד מספרי שקובע עבור הקוד של אנדרואיד באיזה רקע יוצג התאריך העברי
-    HEB_DATE_FG, HEB_DATE_BG  = ("black", "yellow") if is_shabat or is_yom_tov else ("black", "cyan") if is_lite_holiday else ("white", "black")
-    
-    # מחזיר מחרוזת ריקה או עם שם שבת חג וחג קטן 
-    holiday_line_string = f"{'שבת קודש' if is_shabat else ''}  {holiday_name if holiday_name else ''}  {'ראש חודש' if is_rosh_chodesh else ''}  {is_taanit if is_taanit else ''}"
-        
-    
-    '''
-    # איזור שאחראי להגדיר ששעון ההלכה לא ייכנס אוטומטית למצב שינה בשבת ובחג. אך לא מחושב יום טוב שני
-    # פונקציית עזר פנימית לבדיקה האם נמצאים מהשקיעה ועד מוצאי היום העברי
+    ####################################################################################################
+    #פונקציית עזר פנימית לבדיקה האם נמצאים מהשקיעה ועד מוצאי היום העברי
     # כברירת מחדל מוצאי היום העברי זה כשהשמש מינוס 4.6 מעלות תחת האופק
     # מוצאי שבת בלוחות הרגילים זה כשהשמש מינוס 8.5 מעלות תחת האופק
     def is_sunset_until_motsaei(degrees_for_motsaei = -4.6):
+        global s_alt # מוגדר בפרינט אסטרו כלכוליישנס
         return Today_SS and time > Today_SS and s_alt > degrees_for_motsaei
     
     # חישוב תוספות לשבת כלומר מיום שישי חצי שעה לפני השקיעה עד השקיעה וכן בשבת מהשקיעה ועד צאת שבת שבלוחות
-    greg_weekday = greg_date.weekday() # חישוב היום בשבוע של התאריך הלועזי בדווקא
-    half_hour_before_sunset_until_sunset =  Today_SS and time >= (Today_SS - timdelta(seconds=1800) and time < Today_SS # 1800 שניות זה חצי שעה לפני השקיעה  
-    is_tosafot_leshabat = (greg_weekday == 6 and half_hour_before_sunset_until_sunset) or (greg_weekday == 7 and is_sunset_until_motsaei(degrees_for_motsaei = -8.5))
-    shabat_before_motsaei_6 = (greg_weekday == 7 and is_sunset_until_motsaei(degrees_for_motsaei= -6)) 
-    '''
+    #greg_weekday = greg_date.weekday() # חישוב היום בשבוע של התאריך הלועזי בדווקא
+    #half_hour_before_sunset_until_sunset =  Today_SS and time >= (Today_SS - timedelta(minutes=30)) and time < Today_SS # חצי שעה לפני השקיעה  
+    #is_tosafot_leshabat = (greg_weekday == 6 and half_hour_before_sunset_until_sunset) or (greg_weekday == 7 and is_sunset_until_motsaei(degrees_for_motsaei = -8.5))
+    shabat_before_motsaei_6 = (greg_date.weekday() == 7 and is_sunset_until_motsaei(degrees_for_motsaei= -6))
+    ####################################################################################################
+    
+    global HEB_DATE_FG, HEB_DATE_BG
+    # קביעת קוד מספרי שקובע עבור הקוד של אנדרואיד באיזה רקע יוצג התאריך העברי
+    HEB_DATE_FG, HEB_DATE_BG  = ("black", "yellow") if is_shabat or shabat_before_motsaei_6 or is_yom_tov else ("black", "cyan") if is_lite_holiday else ("white", "black")
+    
+    # מחזיר מחרוזת ריקה או עם שם שבת חג וחג קטן 
+    holiday_line_string = f"{'שבת קודש' if is_shabat else ''}  {holiday_name if holiday_name else ''}  {'ראש חודש' if is_rosh_chodesh else ''}  {is_taanit if is_taanit else ''}"
+      
     
     #####################################
     global hc_greg, hc_holiday
@@ -3785,17 +3814,7 @@ def all_calculations():
     
     # הדפסת גובה המיקום
     print_location_elevation.set(int(location.elevation.m))
-    
-    
-    
-    
-    ############################################################################
-    ############################################################################
-    ############################################################################
-    
-    
-    
-   
+       
     #######################################################################################################
     
     # חישוב כמה זמן לקח הפעולה של הפונקצייה הזו
@@ -3831,7 +3850,7 @@ def print_astro_calculations(time,location,location_timezone):
     
     # כל החישובים על השמש
     body = "sun"
-    
+    global s_alt # כדי שנוכל להשתמש בזה בפונקציית כל החישובים ובמקומות נוספים
     # הפעלת הפונקצייה שמחשבת את כל הנתונים על השמש שזהו הגוף המוגדר כעת
     s_alt,s_az,ra,dec,ha,dec_N_S,lat,lon,dist,lat_N_S,percent,apparent_diameter,thickness,_,elongation,ecliptic_elongation,elongation_E_W,_,_ = astro_calculations(body,time,location,location_timezone)
      
@@ -3900,6 +3919,20 @@ def print_astro_calculations(time,location,location_timezone):
     global hc_body_alt, hc_body_az
     hc_body_alt = f"{round(alt, 3) :2.3f}°"
     hc_body_az = f"{round(az, 1) :2.1f}°"
+    
+    ###################################################################
+    # משתנים גלובליים של נתונים עבור שעון ההלכה
+    global hc_moon_phase_percent
+    # חישוב האחוז שהירח עשה מתוך המסלול החודשי שלו
+    # תחילה מחושב במעלות בין 0 ל- 360 ואחר כך אני ממיר לאחוזים בין 0 ל- 100
+    # אמצע החודש יהיה 50 אחוז מהמסלול הרבעים יהיו 25 ו- 75 בהתאמה
+    skyfield_phase = almanac.moon_phase(eph, time)
+    moon_phase_percent = skyfield_phase.degrees / 360 * 100
+    is_moon = body1.get() in [reverse("ירח"), 'Moon']
+    hc_moon_phase_percent = f"{moon_phase_percent:2.2f}%" if is_moon else f""
+    ####################################################################
+
+    
     ####################################################
 
     
@@ -3922,6 +3955,8 @@ def print_astro_calculations(time,location,location_timezone):
         body1_elongation_percent_thickness.set(f"{round(percent, 6) :2.6f} %")
     elif elongation_percent_thickness.get() in [reverse("קוטר זוויתי נראה"), "Apparent Diameter"]:
         body1_elongation_percent_thickness.set(f"{round(thickness,4)}' / {round(apparent_diameter,4)}'")
+    elif elongation_percent_thickness.get() in [reverse("שלב במסלול"), "Phase Percent"]:
+        body1_elongation_percent_thickness.set(f"{round(moon_phase_percent,6):2.6f} %" if is_moon else "--")
         
         
     
@@ -3962,20 +3997,10 @@ def print_astro_calculations(time,location,location_timezone):
         body2_elongation_percent_thickness.set("--")
     elif elongation_percent_thickness.get() in [reverse("קוטר זוויתי נראה"), "Apparent Diameter"]:
         body2_elongation_percent_thickness.set("--")
+    elif elongation_percent_thickness.get() in [reverse("שלב במסלול"), "Phase Percent"]:
+        body2_elongation_percent_thickness.set("--")
     
-    
-    
-    ###################################################################
-    # משתנים גלובליים של נתונים עבור שעון ההלכה
-    global hc_moon_phase_percent
-    # חישוב האחוז שהירח עשה מתוך המסלול החודשי שלו
-    # תחילה מחושב במעלות בין 0 ל- 360 ואחר כך אני ממיר לאחוזים בין 0 ל- 100
-    # אמצע החודש יהיה 50 אחוז מהמסלול הרבעים יהיו 25 ו- 75 בהתאמה
-    skyfield_phase = almanac.moon_phase(eph, time)
-    moon_phase_percent = skyfield_phase.degrees / 360 * 100
-    hc_moon_phase_percent = f"{moon_phase_percent:2.1f}%" if body1.get() in [reverse("ירח"), 'Moon'] else f""
-    ####################################################################
-     
+         
     # הדפסת יום יוליאני
     print_JD.set(f'{time.tdb :02.6f}')
        
@@ -6919,7 +6944,7 @@ def yom_huledet():
         # קבלת כל הנתונים שיש בתיבת הטקסט
         C = txt.get(1.0, END)
         
-        file = asksaveasfilename(defaultextension=".txt", initialfile = f"חישוב יום הולדת ובר או בת מצווה למי שנולד בתאריך - {birth_heb}")
+        file = asksaveasfilename(defaultextension=".txt", initialfile = reverse(f"חישוב יום הולדת ובר או בת מצווה למי שנולד בתאריך - {birth_heb}"))
         
         # שמירת הקובץ תוך אפשרות ציון הקידוד המתאים
         # אפשרויות קידוד: cu_encod או "utf-8"
@@ -7110,6 +7135,11 @@ def yom_huledet():
             txt.insert("end", f'\n בשבת *שאחרי* בר/בת המצווה קוראים בבתי הכנסת בארץ ישראל פרשת: {parshios.getparsha_string(baR_T_mitsva_heb, israel=True, hebrew=True)}')
             txt.insert("end", f'\n בשבת *שלפני* בר/בת המצווה קוראים בבתי הכנסת בארץ ישראל פרשת: {parshios.getparsha_string(baR_T_mitsva_heb - 7, israel=True, hebrew=True)}')
 
+            # ===== רוורס חכם לכל תיבת הטקסט (לינוקס) =====
+            full_text = txt.get("1.0", "end-1c")
+            txt.delete("1.0", "end")
+            txt.insert("1.0", reverse(full_text))
+
             # הגדרת העיצוב של הטקסט בתיבת הטקסט שיהיה ממורכז
             txt.tag_configure("center", justify='center')
             txt.tag_add("center", 1.0, "end")
@@ -7179,16 +7209,16 @@ def yom_huledet():
 
 
         # כותרות לתוכנה
-        Label(wnd, text="מידע באילו ימים בשבוע יכול לחול יום ההולדת העברי וכן פרטים אודות בר/בת המצווה", font= font_, wraplength=1000).pack()
-        Label(wnd, text="שימו לב: תוכנן עבור יום הולדת, אך יכול לשמש גם עבור כל תאריך עברי אחר", font="david 12 bold" , wraplength=1000).pack()
+        Label(wnd, text=reverse("מידע באילו ימים בשבוע יכול לחול יום ההולדת העברי וכן פרטים אודות בר/בת המצווה"), font= font_, wraplength=1000).pack()
+        Label(wnd, text=reverse("שימו לב: תוכנן עבור יום הולדת, אך יכול לשמש גם עבור כל תאריך עברי אחר"), font="david 12 bold" , wraplength=1000).pack()
 
 
         # תווית כותרת שאומרת למשתמש מה לעשות, והצבה שלה לתוך החלון
-        Label(wnd, text="\n בחרו תאריך לידה עברי", font = "david 16 bold").pack()
+        Label(wnd, text=reverse("\n בחרו תאריך לידה עברי"), font = "david 16 bold").pack()
 
         C_heb_or_greg = IntVar(wnd)
 
-        C0 = Checkbutton(wnd, text="או סמנו אם ברצונכם לחשב את התאריך העברי לפי תאריך הלידה הלועזי",font="david 12 bold", variable=C_heb_or_greg,command=set_heb_or_greg_entry).pack()
+        C0 = Checkbutton(wnd, text=reverse("או סמנו אם ברצונכם לחשב את התאריך העברי לפי תאריך הלידה הלועזי"),font="david 12 bold", variable=C_heb_or_greg,command=set_heb_or_greg_entry).pack()
 
         Label(wnd, text="").pack()
 
@@ -7207,7 +7237,7 @@ def yom_huledet():
         greg_year_cb = ttk.Combobox(greg_date, textvariable=Entry_greg_year, width=5, state=state1,values=[*range(1590,2239)],font="narkisim 16",justify='center',)
         greg_year_cb.grid(column=2, row=1)
 
-        Label(greg_date, text="שנה").grid(column=2, row=2)
+        Label(greg_date, text=reverse("שנה")).grid(column=2, row=2)
 
         Entry_greg_month = StringVar(wnd)
         Spinbox(
@@ -7224,7 +7254,7 @@ def yom_huledet():
             font="narkisim 17",
             justify='center'
         ).grid(column=1, row=1)
-        Label(greg_date, text="חודש").grid(column=1, row=2)
+        Label(greg_date, text=reverse("חודש")).grid(column=1, row=2)
 
         Entry_greg_day = StringVar(wnd)
         Spinbox(
@@ -7241,7 +7271,7 @@ def yom_huledet():
             font="narkisim 17",
             justify='center'
         ).grid(column=0, row=1)
-        Label(greg_date, text="יום").grid(column=0, row=2)
+        Label(greg_date, text=reverse("יום")).grid(column=0, row=2)
 
         greg_date.grid(column=1, row=2)
 
@@ -7270,7 +7300,7 @@ def yom_huledet():
         Entry_heb_year = StringVar(wnd)
         greg_year_cb = ttk.Combobox(heb_date, textvariable=Entry_heb_year, width=9, state=state1,values=[*heb_years],font="narkisim 16",justify='center',)
         greg_year_cb.grid(column=8, row=1)
-        Label(heb_date, text="שנה").grid(column=8, row=2)
+        Label(heb_date, text=reverse("שנה")).grid(column=8, row=2)
 
         '''
         Entry_heb_thousands = StringVar(wnd)
@@ -7304,7 +7334,7 @@ def yom_huledet():
             font="narkisim 17",
             justify='center'
         ).grid(column=10, row=1)
-        Label(heb_date, text="חודש").grid(column=10, row=2)
+        Label(heb_date, text=reverse("חודש")).grid(column=10, row=2)
 
 
         # הכנת מערך עם שלושים ימים עבריים עבור ימי החודש
@@ -7327,7 +7357,7 @@ def yom_huledet():
             font="narkisim 17", 
             justify='center'
         ).grid(column=11, row=1)
-        Label(heb_date, text="יום").grid(column=11, row=2)
+        Label(heb_date, text=reverse("יום")).grid(column=11, row=2)
 
         heb_date.grid(column=1, row=2)
 
@@ -7339,11 +7369,11 @@ def yom_huledet():
 
         # כפתור לסימון לאחר השקיעה
         C1_before_24 = IntVar(wnd)
-        Checkbutton(wnd, text = "לחישוב נכון, חובה לסמן במקרה שהלידה הייתה בין תחילת הלילה לשעה 24:00", variable = C1_before_24, onvalue = 1, offvalue = 0, font = "david 15 bold", command=main_result).pack()
+        Checkbutton(wnd, text = reverse("לחישוב נכון, חובה לסמן במקרה שהלידה הייתה בין תחילת הלילה לשעה 24:00"), variable = C1_before_24, onvalue = 1, offvalue = 0, font = "david 15 bold", command=main_result).pack()
 
         # כפתור לסימון חישוב לפי אדר ראשון
         C4_sheela_adar_1 = IntVar(wnd)
-        Checkbutton(wnd, text = "ברצוני שיום ההולדת ובר/בת המצווה של מי שנולד באדר רגיל/שני יחושבו בשנה מעוברת באדר ראשון", variable = C4_sheela_adar_1, onvalue = 12, offvalue = 0, font = "david 12 bold", command=main_result).pack()
+        Checkbutton(wnd, text = reverse("ברצוני שיום ההולדת ובר/בת המצווה של מי שנולד באדר רגיל/שני יחושבו בשנה מעוברת באדר ראשון"), variable = C4_sheela_adar_1, onvalue = 12, offvalue = 0, font = "david 12 bold", command=main_result).pack()
 
         #-----------------------------
 
@@ -7352,9 +7382,9 @@ def yom_huledet():
         # אזור נפרד לכפתורי בר/בת מצווה
         baR_baT = cu_PanedWindow(wnd)
         C2_baR_T_mitsva = StringVar(wnd)
-        R1 = Radiobutton(baR_baT, text="בר מצווה (שנה 13)", font="david 12 bold", variable=C2_baR_T_mitsva, value="בר", command=main_result).grid(column=2, row=1)
+        R1 = Radiobutton(baR_baT, text=reverse("בר מצווה (שנה 13)"), font="david 12 bold", variable=C2_baR_T_mitsva, value="בר", command=main_result).grid(column=2, row=1)
         Label(baR_baT, text="                                                                  ").grid(column=1, row=1)
-        R2 = Radiobutton(baR_baT, text="בת מצווה (שנה 12)", font="david 12 bold", variable=C2_baR_T_mitsva, value="בת", command=main_result).grid(column=0, row=1) 
+        R2 = Radiobutton(baR_baT, text=reverse("בת מצווה (שנה 12)"), font="david 12 bold", variable=C2_baR_T_mitsva, value="בת", command=main_result).grid(column=0, row=1) 
         C2_baR_T_mitsva.set("בר")
         # אריזת האיזור הנפרד לתוך החלון הראשי
         baR_baT.pack()
@@ -7362,7 +7392,7 @@ def yom_huledet():
         #------------------------------
 
         # כפתור שמירת הנתונים
-        Button(wnd, text="לחצו לשמירת הנתונים לקובץ",command=save_txt_to_path).pack()
+        Button(wnd, text=reverse("לחצו לשמירת הנתונים לקובץ"),command=save_txt_to_path).pack()
 
         
         #------------------------------------------------------
@@ -9580,7 +9610,7 @@ if __name__ == '__main__':
 
     # הגדרת תפריט בחירה בין פרמטרים שונים על הכוכב
     elongation_percent_thickness = StringVar(ws)
-    elongation_options = reverse(["אֵלוֹנְגַּצְיָה (מהשמש)","אורך ראשון (מהשמש)","אחוזי תאורה","קוטר זוויתי נראה"]) if is_heb else ["Elongation","Ecliptic Elongation","Fraction Illuminated","Apparent Diameter"]
+    elongation_options = reverse(["אֵלוֹנְגַּצְיָה (מהשמש)","אורך ראשון (מהשמש)","אחוזי תאורה","קוטר זוויתי נראה","שלב במסלול"]) if is_heb else ["Elongation","Ecliptic Elongation","Fraction Illuminated","Apparent Diameter","Phase Percent"]
     elongation_percent_thickness_cb = ttk.Combobox(results, textvariable=elongation_percent_thickness, width=19, state='readonly',values=[*elongation_options],font="david 15 bold",justify='center')
     elongation_percent_thickness_cb.grid(column=6, row=8)
     elongation_percent_thickness.set(elongation_options[0])
@@ -10000,14 +10030,14 @@ if __name__ == '__main__':
     Entry(clocks,textvariable=print_JD,width=14,font="narkisim 16",justify="center").grid(column=8, row=1)
     Label(clocks, text = reverse("JD יום יוליאני ") if is_heb else "JD Julian Day").grid(column=8, row=2)
     Label(clocks, text="   ").grid(column=7, row=2)
-    Entry(clocks,textvariable=print_hours_from_last_sunset,width=8,font="narkisim 16", justify="center").grid(column=6, row=1)
-    Label(clocks, text= reverse("שעות מהשקיעה") if is_heb else "from sunset").grid(column=6, row=2)    
+    Entry(clocks,textvariable=print_utc_time,width=8,font="narkisim 16",justify="center").grid(column=6, row=1)
+    Label(clocks, text=reverse("(utc) שעון גריניץ") if is_heb else "Greenwich time").grid(column=6, row=2)
     Entry(clocks,textvariable=print_LSoT_time,width=8,font="narkisim 20",justify="center",disabledbackground= "gray87").grid(column=5, row=1)
     Label(clocks, text= reverse("שעון מקומי אמיתי") if is_heb else "   Real local time   ").grid(column=5, row=2)    
     Entry(clocks,textvariable=print_lmt_time,width=8,font="narkisim 20",justify="center",disabledbackground= "gray87").grid(column=4, row=1)
     Label(clocks, text=reverse("שעון מקומי ממוצע") if is_heb else "Mean local time").grid(column=4, row=2)
-    Entry(clocks,textvariable=print_utc_time,width=8,font="narkisim 16",justify="center").grid(column=3, row=1)
-    Label(clocks, text=reverse("(utc) שעון גריניץ") if is_heb else "Greenwich time").grid(column=3, row=2)
+    Entry(clocks,textvariable=print_hours_from_last_sunset,width=8,font="narkisim 16", justify="center").grid(column=3, row=1)
+    Label(clocks, text= reverse("שעות מהשקיעה") if is_heb else "from sunset").grid(column=3, row=2)
     Label(clocks, text=" ").grid(column=2, row=2)
     Entry(clocks,textvariable=print_equation_of_time,width=7,font="narkisim 16",justify="center").grid(column=1, row=1)
     Label(clocks, text=reverse("משוואת הזמן") if is_heb else "equation time").grid(column=1, row=2)
