@@ -2471,32 +2471,31 @@ counter_shift = 0.0
 hesberim = [
         
         ["ליציאה לחצו במקלדת על",f"Esc"],
-        ["שעון ההלכה גרסה",f"{hw_version}"],
-        [" מאת: שמחה גרשון בורר - כוכבים וזמנים",""],
-        [reverse("sgbmzm@gmail.com"), ""],
-        ["כל הזכויות שמורות - להלן הסברים", ""],
+        ["שעון ההלכה - כוכבים וזמנים,  גרסה",f"{hw_version}"],
+        ["מאת: שמחה גרשון בורר","sgbmzm@gmail.com"],
+        ["כל הזכויות שמורות. להלן הסברים", ""],
         
-        [" התאריך העברי מתחלף בשקיעה (גרא)", ""],
+        ["התאריך העברי מתחלף בשקיעה (גרא)", ""],
         
-        [" מתחת גרא/מגא:  דקות בשעה זמנית", ""],
-        [" מתחת שמש/ירח:  אזימוט שמש/ירח", ""],
+        ["מתחת גרא/מגא:  דקות בשעה זמנית", ""],
+        ["מתחת שמש/ירח:  אזימוט שמש/ירח", ""],
         ["אזימוט = מעלות מהצפון, וכדלהלן", ""],
-        [f"צפון={reverse('0/360')}, מז={reverse('90')}, ד={reverse('180')}, מע={reverse('270')}", ""],
-        ["  שלב הירח במסלולו החודשי - באחוזים", ""],
-        [f"מולד={reverse('0/100')}, ניגוד={reverse('50')}, רבעים={reverse('25/75')}", ""],
+        [f"צפון={reverse('0/360')}, מזרח={reverse('90')}, דרום={reverse('180')}, מערב={reverse('270')}", ""],
+        ["שלב הירח במסלולו החודשי - באחוזים, כדלהלן:", ""],
+        [f"מולד={reverse('0/100%')}, ניגוד={reverse('50%')}, רבעים={reverse('25/75%')}", ""],
     
         ["רשימת זמני היום בשעות זמניות", ""],
         ["זריחה ושקיעה במישור", "00:00"],
         ["סוף שמע ביום/רבע הלילה", "03:00"],
-        ["  סוף תפילה ביום/שליש הלילה", "04:00"],
+        ["סוף תפילה ביום/שליש הלילה", "04:00"],
         ["חצות יום ולילה", "06:00"],
         ["מנחה גדולה", "06:30"],
         ["מנחה קטנה", "09:30"],
         ["פלג המנחה", "10:45"],
         
-        ["   זמנים במעלות כשהשמש תחת האופק", ""],
+        ["זמנים במעלות כשהשמש תחת האופק", ""],
         ["זריחת ושקיעת מרכז השמש", "0.0°"],
-        ["  זריחה ושקיעה במישור", "-0.833°"],
+        ["זריחה ושקיעה במישור", "-0.833°"],
         
         [f"זמני צאת הכוכבים {reverse('3/4')} מיל במעלות", ""],
         [f"לפי מיל של {reverse('18')} דקות", "-3.65°"],
@@ -2504,7 +2503,7 @@ hesberim = [
         [f"לפי מיל של {reverse('24')} דקות", "-4.61°"],
         ["צאת כוכבים קטנים רצופים", "-6.3°"],
         
-        ["  מעלות: עלות השחר/צאת כוכבים דרת", ""],
+        ["מעלות: עלות השחר/צאת כוכבים דרת", ""],
         [f"לפי 4 מיל של {reverse('18')} דקות", "-16.02°"],
         [f"לפי 4 מיל של {reverse('22.5')} דקות", "-19.75°"],
         [f"לפי 5 מיל של {reverse('24')} דקות", "-25.8°"],
@@ -2518,7 +2517,7 @@ hesberim = [
 
         
         ["להלן תנאי מינימום כלליים לראיית ירח ראשונה", ""],
-        [f"שלב במסלול: {reverse('3%')}; והפרש גובה שמש-ירח {reverse('8°')}", ""],
+        [f"שלב במסלול: {reverse('3%')}; והפרש גובה שמש-ירח: {reverse('8°')}", ""],
     
     ]  
 
@@ -2614,7 +2613,11 @@ def halacha_clock():
     # משתנה שמגדיר איזה סוג צבע ירוק יהיה בשימוש לטקסטים שונים בשעון ההלכה
     hw_green = "lime"
     # צבע מגנטה עמום יותר
-    hw_dim_magenta = "#AA55AA"
+    hw_dim_magenta = "magenta" #"#AA55AA"
+    
+    hw_labels_color = "turquoise"
+    
+    hw_low_velue_color = "turquoise"
     
     
     is_add_labels = settings_dict["halacha_clock_labels"] # האם להציג תוייות הסבר בשעון ההלכה
@@ -2624,79 +2627,79 @@ def halacha_clock():
     
     # איזור כותרת
     #canvas.create_text(158 * scale, 10 * scale, text=reverse("שעון ההלכה                                          כוכבים וזמנים"), fill="turquoise", font=scaled_font("miriam", 10))
-    canvas.create_text(50 * scale, 10 * scale, text=reverse("כוכבים וזמנים"), fill="turquoise", font=scaled_font("miriam", 10))
-    canvas.create_text(270 * scale, 10 * scale, text=reverse("שעון ההלכה"), fill="turquoise", font=scaled_font("miriam", 10))
+    canvas.create_text(50 * scale, 10 * scale, text=reverse("כוכבים וזמנים"), fill=hw_labels_color, font=scaled_font("miriam", 10, "bold"))
+    canvas.create_text(270 * scale, 10 * scale, text=reverse("שעון ההלכה"), fill=hw_labels_color, font=scaled_font("miriam", 10, "bold"))
     
     city_id = canvas.create_text(160 * scale, 10 * scale, text="", fill=hw_green, font=scaled_font("miriam", 12, "bold"))
     # איזור תאריך עברי
     heb_date_rect_id = canvas.create_rectangle(0, 20 * scale, screen_width, 38 * scale, fill="black")
     heb_date_id = canvas.create_text(160 * scale, 27 * scale, text="", fill="white", font=scaled_font("miriam", 14, "bold"))
-    holiday_id = canvas.create_text(160 * scale, 40 * scale, text="", fill=hw_dim_magenta, font=scaled_font("miriam", 8, "bold"))
+    holiday_id = canvas.create_text(160 * scale, 40 * scale, text="", fill=hw_labels_color, font=scaled_font("miriam", 8, "bold"))
     canvas.create_line(0, 42 * scale, screen_width, 42 * scale, fill="yellow")
 
     # איזור שעה זמנית גרא ומגא
-    canvas.create_text(300 * scale, 50 * scale, text=reverse("גרא"), fill="white", font=scaled_font("miriam", 13))
-    minutes_gra_label_id = canvas.create_text(300 * scale, 77 * scale, text="", fill="turquoise", font=scaled_font("miriam", 4))
+    canvas.create_text(300 * scale, 50 * scale, text=reverse("גרא"), fill="white", font=scaled_font("miriam", 13, "bold"))
+    minutes_gra_label_id = canvas.create_text(300 * scale, 67 * scale, text="", fill=hw_labels_color, font=scaled_font("miriam", 5))
     if is_add_labels:
-        canvas.create_text(201 * scale, 47 * scale, text=reverse('שעון שעה זמנית'), fill="turquoise", font=scaled_font("miriam", 4))
-    gra_method_id = canvas.create_text(300 * scale, 59 * scale, text="", fill=hw_dim_magenta, font=scaled_font("miriam", 5))
-    minutes_in_gra_temporal_hour_id = canvas.create_text(300 * scale, 70 * scale, text="", fill="turquoise", font=scaled_font("miriam", 10))
+        canvas.create_text(201 * scale, 47 * scale, text=reverse('שעון שעה זמנית'), fill=hw_labels_color, font=scaled_font("miriam", 6))
+    gra_method_id = canvas.create_text(300 * scale, 59 * scale, text="", fill=hw_green, font=scaled_font("miriam", 6, "bold"))
+    minutes_in_gra_temporal_hour_id = canvas.create_text(300 * scale, 75 * scale, text="", fill=hw_low_velue_color, font=scaled_font("miriam", 10, "bold"))
     gra_temporal_hour_id = canvas.create_text(208 * scale, 66 * scale, text="", fill=hw_green, font=scaled_font("miriam", 30, "bold"))
     
     left_x = 117
-    canvas.create_text(left_x * scale, 50 * scale, text=reverse("מגא"), fill="white", font=scaled_font("miriam", 13))
-    minutes_mga_label_id = canvas.create_text(left_x * scale, 77 * scale, text="", fill="turquoise", font=scaled_font("miriam", 4))
+    canvas.create_text(left_x * scale, 50 * scale, text=reverse("מגא"), fill="white", font=scaled_font("miriam", 13, "bold"))
+    minutes_mga_label_id = canvas.create_text(left_x * scale, 67 * scale, text="", fill=hw_labels_color, font=scaled_font("miriam", 5))
     if is_add_labels:
-        canvas.create_text(50 * scale, 47 * scale, text=reverse('שעון שעה זמנית'), fill="turquoise", font=scaled_font("miriam", 4))
-    mga_method_id = canvas.create_text(left_x * scale, 59 * scale, text="", fill=hw_dim_magenta, font=scaled_font("miriam", 5))
-    minutes_in_mga_temporal_hour_id = canvas.create_text(left_x * scale, 70 * scale, text="", fill="turquoise", font=scaled_font("miriam", 10))
+        canvas.create_text(50 * scale, 47 * scale, text=reverse('שעון שעה זמנית'), fill=hw_labels_color, font=scaled_font("miriam", 6))
+    mga_method_id = canvas.create_text(left_x * scale, 59 * scale, text="", fill=hw_green, font=scaled_font("miriam", 6, "bold"))
+    minutes_in_mga_temporal_hour_id = canvas.create_text(left_x * scale, 75 * scale, text="", fill=hw_low_velue_color, font=scaled_font("miriam", 10, "bold"))
     mga_temporal_hour_id = canvas.create_text(50 * scale, 65 * scale, text="", fill=hw_green, font=scaled_font("miriam", 20, "bold"))
-    canvas.create_line(0, 79 * scale, screen_width, 79 * scale, fill="yellow")
+    canvas.create_line(0, 80 * scale, screen_width, 80 * scale, fill="yellow")
 
     # איזור מידע על שמש וירח
-    canvas.create_text(300 * scale, 87 * scale, text=reverse("שמש"), fill="white", font=scaled_font("miriam", 13))
-    sun_az_id = canvas.create_text(300 * scale, 115 * scale, text="", fill="turquoise", font=scaled_font("miriam", 10))
-    canvas.create_text(300 * scale, 99 * scale,text="◆",fill=hw_green,font=scaled_font("miriam", 5))
+    canvas.create_text(300 * scale, 88 * scale, text=reverse("שמש"), fill="white", font=scaled_font("miriam", 13, "bold"))
+    sun_az_id = canvas.create_text(300 * scale, 115 * scale, text="", fill=hw_low_velue_color, font=scaled_font("miriam", 10,"bold"))
+    canvas.create_text(300 * scale, 97 * scale,text="◆",fill=hw_green,font=scaled_font("miriam", 5))
 
     if is_add_labels:
-        canvas.create_text(200 * scale, 85 * scale, text=reverse("גובה (מהאופק):"), fill="turquoise", font=scaled_font("miriam", 4))
-        canvas.create_text(300 * scale, 107 * scale, text=reverse("אַזִימוּט:"), fill="turquoise", font=scaled_font("miriam", 4))
+        canvas.create_text(200 * scale, 85 * scale, text=reverse("גובה - מהאופק"), fill=hw_labels_color, font=scaled_font("miriam", 6))
+        canvas.create_text(300 * scale, 105 * scale, text=reverse("אַזִימוּט"), fill=hw_labels_color, font=scaled_font("miriam", 6))
     sun_alt_id = canvas.create_text(209 * scale, 107 * scale, text="", fill=hw_green, font=scaled_font("miriam", 30, "bold"))
 
-    moon_name_id = canvas.create_text(left_x * scale, 87 * scale, text=reverse("ירח"), fill="white", font=scaled_font("miriam", 13))
+    moon_name_id = canvas.create_text(left_x * scale, 88 * scale, text=reverse("ירח"), fill="white", font=scaled_font("miriam", 13, "bold"))
     if is_add_labels:
-        canvas.create_text(left_x * scale, 107 * scale, text=reverse("אַזִימוּט:"), fill="turquoise", font=scaled_font("miriam", 4))
-    moon_phase_lable_id = canvas.create_text(77 * scale, 88 * scale, text=reverse("מסלול \nחודשי:"), fill="turquoise", font=scaled_font("miriam", 4))
-    moon_alt_lable_id = canvas.create_text(50 * scale, 90 * scale, text=reverse("גובה (מהאופק):"), fill="turquoise", font=scaled_font("miriam", 4))
-    moon_az_id = canvas.create_text(left_x * scale, 115 * scale, text="", fill="turquoise", font=scaled_font("miriam", 10))
-    canvas.create_text(left_x * scale, 99 * scale,text="◆",fill=hw_green,font=scaled_font("miriam", 5))
+        canvas.create_text(left_x * scale, 105 * scale, text=reverse("אַזִימוּט"), fill=hw_labels_color, font=scaled_font("miriam", 6))
+    moon_phase_lable_id = canvas.create_text(81 * scale, 89 * scale, text=reverse("מסלול\nחודשי"), fill=hw_labels_color, font=scaled_font("miriam", 6))
+    moon_alt_lable_id = canvas.create_text(49 * scale, 92 * scale, text=reverse("גובה - מהאופק"), fill=hw_labels_color, font=scaled_font("miriam", 6))
+    moon_az_id = canvas.create_text(left_x * scale, 115 * scale, text="", fill=hw_low_velue_color, font=scaled_font("miriam", 10,"bold"))
+    canvas.create_text(left_x * scale, 97 * scale,text="◆",fill=hw_green,font=scaled_font("miriam", 5))
 
     moon_alt_id = canvas.create_text(50 * scale, 109 * scale, text="", fill=hw_green, font=scaled_font("miriam", 20, "bold"))
-    moon_phase_id = canvas.create_text(40 * scale, 88 * scale, text="", fill="turquoise", font=scaled_font("miriam", 14))
+    moon_phase_id = canvas.create_text(39 * scale, 89 * scale, text="", fill="turquoise", font=scaled_font("miriam", 14,"bold"))
     canvas.create_line(0, 120 * scale, screen_width, 120 * scale, fill="yellow")
 
     # איזור מתחלף: זמנים בשעון רגיל ושעונים נוספים
-    zmanim_with_clocks_id = canvas.create_text(160 * scale, 129 * scale, text="", fill="white", font=scaled_font("miriam", 15))
+    zmanim_with_clocks_id = canvas.create_text(160 * scale, 129 * scale, text="", fill="white", font=scaled_font("miriam", 14, "bold"))
     
     # תוויות שעונים – נוצרות פעם אחת בלבד
     clocks_labels_y = 140
     clocks_label_ids = [
-        canvas.create_text(280 * scale, clocks_labels_y * scale, text=reverse("השעה בגריניץ (utc)"), fill="turquoise", font=scaled_font("miriam", 4)),
-        canvas.create_text(200 * scale, clocks_labels_y * scale, text=reverse("שעון מקומי (חצות אמיתי)"), fill="turquoise", font=scaled_font("miriam", 4)),
-        canvas.create_text(120 * scale, clocks_labels_y * scale, text=reverse("שעון מקומי (חצות ממוצע)"), fill="turquoise", font=scaled_font("miriam", 4)),
-        canvas.create_text(40 * scale, clocks_labels_y * scale, text=reverse("שעות מהשקיעה (מַגְרַבּ)"), fill="turquoise", font=scaled_font("miriam", 4)),
+        canvas.create_text(283 * scale, clocks_labels_y * scale, text=reverse("השעה בגריניץ (utc)"), fill=hw_labels_color, font=scaled_font("miriam", 6,)),
+        canvas.create_text(200 * scale, clocks_labels_y * scale, text=reverse("שעון מקומי אמיתי"), fill=hw_labels_color, font=scaled_font("miriam", 6,)),
+        canvas.create_text(120 * scale, clocks_labels_y * scale, text=reverse("שעון מקומי ממוצע"), fill=hw_labels_color, font=scaled_font("miriam", 6)),
+        canvas.create_text(35 * scale, clocks_labels_y * scale, text=reverse("שעות מהשקיעה"), fill=hw_labels_color, font=scaled_font("miriam", 6,)),
     ]
     
     canvas.create_line(0, 143 * scale, screen_width, 143 * scale, fill="yellow")
 
     # איזור שעון רגיל ותאריך לועזי ואיזור הזמן
-    utc_offset_id = canvas.create_text(270 * scale, 156 * scale, text="", fill="white", font=scaled_font("miriam", 18))
+    utc_offset_id = canvas.create_text(270 * scale, 156 * scale, text="", fill="white", font=scaled_font("miriam", 17, "bold"))
     time_id = canvas.create_text(180 * scale, 156 * scale, text="", fill=hw_green, font=scaled_font("miriam", 20, "bold"))
-    greg_date_id = canvas.create_text(65 * scale, 156 * scale, text="", fill="white", font=scaled_font("miriam", 18))
+    greg_date_id = canvas.create_text(65 * scale, 156 * scale, text="", fill="white", font=scaled_font("miriam", 17, "bold"))
     canvas.create_line(0, 166 * scale, screen_width, 166 * scale, fill="yellow")
     
     # איזור מתחלף שקיים רק במחשב ולא בשעון ההלכה הפיזי ומיוע להצגת הסברים או אינפורמציה אחרת
-    info_id = canvas.create_text(160 * scale, 174 * scale, text="", fill=hw_dim_magenta, font=scaled_font("miriam", 10))
+    info_id = canvas.create_text(160 * scale, 174 * scale, text="", fill=hw_dim_magenta, font=scaled_font("miriam", 11, "bold"))
     
  
     
@@ -2790,8 +2793,8 @@ def halacha_clock():
         canvas.itemconfig(gra_method_id, text=hc_gra_method)
         canvas.itemconfig(gra_temporal_hour_id, text=hc_clock_gra)
             
-        canvas.itemconfig(minutes_gra_label_id, text=f"({hc_gra_day}) {reverse('דקות לשעה')}" if is_add_labels else "")
-        canvas.itemconfig(minutes_mga_label_id, text=f"({hc_mga_day}) {reverse('דקות לשעה')}" if is_add_labels else "")
+        canvas.itemconfig(minutes_gra_label_id, text=f"({hc_gra_day}) {reverse('שעה')}" if is_add_labels else "")
+        canvas.itemconfig(minutes_mga_label_id, text=f"({hc_mga_day}) {reverse('שעה')}" if is_add_labels else "")
         
         canvas.itemconfig(minutes_in_mga_temporal_hour_id, text=hc_minutes_mga)
         canvas.itemconfig(mga_method_id, text=hc_mga_method)
@@ -2878,7 +2881,7 @@ def halacha_clock():
         # קידום מונים
         # =========================
 
-        current_screen_hesberim = (current_screen_hesberim + (speed_step * 2)) % len(hesberim)
+        current_screen_hesberim = (current_screen_hesberim + (speed_step * 1)) % len(hesberim)
 
         if mode == "zmanim":
             current_screen_zmanim = (current_screen_zmanim + (speed_step * mult_zmanim)) % len(zmanim_list)
@@ -3590,10 +3593,10 @@ def all_calculations():
             [f"עלות השחר:   {reverse(format_dt(Today_SR_MGA))}   ({reverse(Halachic_method_MGA.get())})"],
             [f"זמן ציצית (משיכיר):   {reverse(format_dt(misheiakir))}   ({reverse(settings_dict['misheiacir_deg'])})"],
             [f"זריחה:   {reverse(format_dt(Today_SR))}   ({reverse(Halachic_method_GRA.get())})"],
-            [f"סוף שמע: מגא - {reverse(format_dt(sozkash_mga))}, גרא - {reverse(format_dt(sozkash_gra))}"], 
-            [f"סוז''ת: מגא - {reverse(format_dt(sozat_mga))}, גרא - {reverse(format_dt(sozat_gra))}"],
+            [f'סוזק"ש מגא: {reverse(format_dt(sozkash_mga))} | גרא: {reverse(format_dt(sozkash_gra))}'], 
+            [f'סוז"ת מגא: {reverse(format_dt(sozat_mga))} | גרא: {reverse(format_dt(sozat_gra))}'],
             [f"חצות היום (וכנגדו בלילה): {reverse(format_dt(day_transit))}"], # שמש באזימוט 180. או טיפה פחות מדוייק: format_dt(chatzot)
-            [f"מנחה: גדולה - {reverse(format_dt(mincha_gedola))}, קטנה - {reverse(format_dt(mincha_ketana))}"],
+            [f"מנחה גדולה: {reverse(format_dt(mincha_gedola))} | קטנה: {reverse(format_dt(mincha_ketana))}"],
             [f"פלג המנחה - {reverse(format_dt(pelag_hamincha))}"],
             [f"שקיעה:   {reverse(format_dt(Today_SS))}   ({reverse(Halachic_method_GRA.get())})"],
             [f"צאת הכוכבים:   {reverse(format_dt(tset_hacochavim_geonim))}   ({reverse(settings_dict['hacochavim_deg'])})"],
