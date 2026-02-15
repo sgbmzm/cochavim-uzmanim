@@ -574,7 +574,7 @@ cu_screenheight = 768
 cu_scaling = 1.32 # כנראה המקורי היה 1.3 אבל למעשה בחרתי 1.32 כי המקורי עשה בעיות וזה כנראה פועל היטב במחשבים גדולים
 
 # תאריך גרסת התוכנה הראשית
-cu_version_date = dt.date(2026,2,12)
+cu_version_date = dt.date(2026,2,15)
 
 # פונקצייה שמחזירה שם יחד עם מיקום של קובץ בתיקיית תוכנת כוכבים וזמנים
 '''
@@ -2632,9 +2632,9 @@ def halacha_clock():
     
     city_id = canvas.create_text(160 * scale, 10 * scale, text="", fill=hw_green, font=scaled_font("miriam", 12, "bold"))
     # איזור תאריך עברי
-    heb_date_rect_id = canvas.create_rectangle(0, 20 * scale, screen_width, 38 * scale, fill="black")
-    heb_date_id = canvas.create_text(160 * scale, 27 * scale, text="", fill="white", font=scaled_font("miriam", 14, "bold"))
-    holiday_id = canvas.create_text(160 * scale, 40 * scale, text="", fill=hw_labels_color, font=scaled_font("miriam", 8, "bold"))
+    heb_date_rect_id = canvas.create_rectangle(0, 18 * scale, screen_width, 38 * scale, fill="black")
+    heb_date_id = canvas.create_text(160 * scale, 25 * scale, text="", fill="white", font=scaled_font("miriam", 14, "bold"))
+    holiday_id = canvas.create_text(160 * scale, 38 * scale, text="", fill=hw_labels_color, font=scaled_font("miriam", 8, "bold"))
     canvas.create_line(0, 42 * scale, screen_width, 42 * scale, fill="yellow")
 
     # איזור שעה זמנית גרא ומגא
@@ -2687,7 +2687,7 @@ def halacha_clock():
         canvas.create_text(283 * scale, clocks_labels_y * scale, text=reverse("השעה בגריניץ (utc)"), fill=hw_labels_color, font=scaled_font("miriam", 6,)),
         canvas.create_text(200 * scale, clocks_labels_y * scale, text=reverse("שעון מקומי אמיתי"), fill=hw_labels_color, font=scaled_font("miriam", 6,)),
         canvas.create_text(120 * scale, clocks_labels_y * scale, text=reverse("שעון מקומי ממוצע"), fill=hw_labels_color, font=scaled_font("miriam", 6)),
-        canvas.create_text(35 * scale, clocks_labels_y * scale, text=reverse("שעות מהשקיעה"), fill=hw_labels_color, font=scaled_font("miriam", 6,)),
+        canvas.create_text(36 * scale, clocks_labels_y * scale, text=reverse("שעות מהשקיעה"), fill=hw_labels_color, font=scaled_font("miriam", 6,)),
     ]
     
     canvas.create_line(0, 143 * scale, screen_width, 143 * scale, fill="yellow")
@@ -2714,7 +2714,7 @@ def halacha_clock():
     #פונקציה לעדכון המסך כל שנייה
     def update_canvas():
         
-        global HEB_DATE_FG, HEB_DATE_BG, zmanim_list, hc_greg, hc_holiday # מוגדרים בפונקציית אולל כלכוליישנס
+        global HEB_DATE_FG, HEB_DATE_BG, hc_zmanim_list, hc_greg, hc_holiday # מוגדרים בפונקציית אולל כלכוליישנס
         global hc_sun_alt, hc_sun_az, hc_body_alt, hc_body_az, hc_moon_phase_percent # מוגדרים בפונקציית אסטרו כלכוליישנס
         
         # כותרת
@@ -2731,8 +2731,8 @@ def halacha_clock():
         
         hc_gra_method = f"({Halachic_method_GRA.get()}°)"
         hc_mga_method = f"({Halachic_method_MGA.get()}°)"
-        hc_gra_day = f"{print_day_or_night_GRA.get()}"
-        hc_mga_day = f"{print_day_or_night_MGA.get()}"
+        hc_gra_day = f"{reverse('שעה')} ({print_day_or_night_GRA.get()})" if is_windows else f"({print_day_or_night_GRA.get()}) {reverse('שעה')}"
+        hc_mga_day = f"{reverse('שעה')} ({print_day_or_night_MGA.get()})" if is_windows else f"({print_day_or_night_MGA.get()}) {reverse('שעה')}"
         
         # גובה ואזימוט שמש וירח ואחוז מהמסלול של הירח
         #hc_sun_alt = sun_alt.get()
@@ -2793,8 +2793,8 @@ def halacha_clock():
         canvas.itemconfig(gra_method_id, text=hc_gra_method)
         canvas.itemconfig(gra_temporal_hour_id, text=hc_clock_gra)
             
-        canvas.itemconfig(minutes_gra_label_id, text=f"({hc_gra_day}) {reverse('שעה')}" if is_add_labels else "")
-        canvas.itemconfig(minutes_mga_label_id, text=f"({hc_mga_day}) {reverse('שעה')}" if is_add_labels else "")
+        canvas.itemconfig(minutes_gra_label_id, text= hc_gra_day if is_add_labels else "")
+        canvas.itemconfig(minutes_mga_label_id, text= hc_mga_day if is_add_labels else "")
         
         canvas.itemconfig(minutes_in_mga_temporal_hour_id, text=hc_minutes_mga)
         canvas.itemconfig(mga_method_id, text=hc_mga_method)
@@ -2827,18 +2827,14 @@ def halacha_clock():
         canvas.itemconfig(info_id, text=CCC if is_heb else "information") # אפשר להשמיט את fill="violet" ואז הטקסט יהיה לבן כמו שהוגדר לעיל
        
                 
-        ### הכנה לשורת שעונים
-        clocks_string = f"{hc_magrab}  {hc_lmt}  {hc_lsot}  {hc_utc}"
-        
+        ### הכנה לשורת שעונים. הרווחים שונים בלינוקס ולכן צריך להתאים
+        clocks_string =  f"{hc_magrab}   {hc_lmt}   {hc_lsot}   {hc_utc}" if is_windows else f"{hc_magrab}  {hc_lmt}  {hc_lsot}  {hc_utc}"
         # האם מציגים שעונים, זמנים, או משולב גם וגם
         mode = settings_dict["zmanim_mode"]
         # קצב מהירות התחלפות האיברים בהסברים בשעונים ובזמנים
         speed_step = settings_dict["halacha_clock_speed_step"]
 
-        # מכפלות מהירות לכל מצב
-        mult_zmanim = 1
-        mult_zmanim_with_clocks = 1.56 #70 שניות: 2 | 90 שניות: 1.56 | 120 שניות: 1.17 | 140 שניות: 1
-
+        
 
         # =========================
         # תצוגה
@@ -2846,8 +2842,8 @@ def halacha_clock():
 
         if mode == "zmanim":
 
-            zman_index = int(current_screen_zmanim) % len(zmanim_list)
-            display_text_for_zmanim_with_clocks_id = reverse(zmanim_list[zman_index][0])
+            zman_index = int(current_screen_zmanim) % len(hc_zmanim_list)
+            display_text_for_zmanim_with_clocks_id = reverse(hc_zmanim_list[zman_index][0])
             is_showing_clocks = False
 
 
@@ -2860,10 +2856,10 @@ def halacha_clock():
         else:  # zmanim_with_clocks
 
             phase_index = int(current_screen_zmanim_with_clocks) % 2
-            zman_index = (int(current_screen_zmanim_with_clocks) // 2) % len(zmanim_list)
+            zman_index = (int(current_screen_zmanim_with_clocks) // 2) % len(hc_zmanim_list)
 
             if phase_index == 0:
-                display_text_for_zmanim_with_clocks_id = reverse(zmanim_list[zman_index][0])
+                display_text_for_zmanim_with_clocks_id = reverse(hc_zmanim_list[zman_index][0])
                 is_showing_clocks = False
             else:
                 display_text_for_zmanim_with_clocks_id = clocks_string
@@ -2881,17 +2877,20 @@ def halacha_clock():
         # קידום מונים
         # =========================
 
-        current_screen_hesberim = (current_screen_hesberim + (speed_step * 1)) % len(hesberim)
+        current_screen_hesberim = (current_screen_hesberim + speed_step) % len(hesberim)
 
         if mode == "zmanim":
-            current_screen_zmanim = (current_screen_zmanim + (speed_step * mult_zmanim)) % len(zmanim_list)
+            current_screen_zmanim = (current_screen_zmanim + speed_step) % len(hc_zmanim_list)
 
         elif mode == "zmanim_with_clocks":
-            current_screen_zmanim_with_clocks = (current_screen_zmanim_with_clocks + (speed_step * mult_zmanim_with_clocks)) % (len(zmanim_list) * 2)
+            current_screen_zmanim_with_clocks = (current_screen_zmanim_with_clocks + speed_step) % (len(hc_zmanim_list) * 2)
      
         ###################################################################################
         # התקדמות הצגת והלפת כוכבי הלכת המוצגים
         global current_screen_body
+        
+        # תמיד מקדמים קדימה את המונה. כאן קודם מקדמים את המונה ורק אחר כך מציגים את הגוף כי חישוב הגוף מושפע רק בחישוב הבא        
+        current_screen_body = (current_screen_body + speed_step) % len(hw_planets_names)
                      
         if is_show_planets:
             body1.set(hw_planets_names[int(current_screen_body)])
@@ -2899,9 +2898,7 @@ def halacha_clock():
             # אם רוצים להציג רק ירח ולא כוכבי לכת אחרים וכרגע מוגדר כוכב אחר - מגדירים על הירח 
             if not is_moon:
                 body1.set(hw_planets_names[0])
-        # תמיד מקדמים קדימה את המונה        
-        current_screen_body = (current_screen_body + (speed_step * 0.7)) % len(hw_planets_names)
-       
+        
         #############################################################################
             
         
@@ -3436,12 +3433,12 @@ def time_location_timezone():
 
 
 # משתנים גלובליים חשובים מאוד עבור all_calculations כדי למנוע חישוב כבד של זיחות ושקיעות וכדומה כשאין צורך בחישוב חדש
-Today_SR, Today_SS, LAST_SS, NEXT_SR, LAST_SS_0_833, seconds_equation_of_time, str_equation_of_time = [None] * 7
+Today_SR, Today_SS, LAST_SS, NEXT_SR, seconds_equation_of_time, str_equation_of_time = [None] * 6
 Today_SR_MGA, Today_SS_MGA, LAST_SS_MGA, NEXT_SR_MGA = [None] * 4
 tset_hacochavim_geonim, misheiakir = [None] * 2
 day_transit = None
 last_stamp = None
-zmanim_list = []
+hc_zmanim_list = []
 
 # פונקציית זו היא הפונקצייה הראשית של התוכנה והיא קוראת לכל הפונקציות האחרות ומפעילה את כל החישובים    
 def all_calculations():
@@ -3467,12 +3464,12 @@ def all_calculations():
 
     
     # הצהרה על המשתנים הגלובליים
-    global Today_SR, Today_SS, LAST_SS, NEXT_SR, LAST_SS_0_833, seconds_equation_of_time, str_equation_of_time
+    global Today_SR, Today_SS, LAST_SS, NEXT_SR, seconds_equation_of_time, str_equation_of_time
     global Today_SR_MGA, Today_SS_MGA, LAST_SS_MGA, NEXT_SR_MGA
     global tset_hacochavim_geonim, misheiakir
     global day_transit
     global last_stamp
-    global zmanim_list
+    global hc_zmanim_list
     
     # שמירת חותמת של כל הנתונים החשובים שאם אחד מהם משתנה חייבים לחשב מחדש זריחות ושקיעות
     stamp = (location.latitude.degrees, location.longitude.degrees, location.elevation.m, time.date(), time.utcoffset(), location_timezone, Halachic_method_MGA.get(), Halachic_method_GRA.get())
@@ -3580,7 +3577,26 @@ def all_calculations():
         # שימו לב שהזמנים הם לפי המעלות המוגדרות בהגדרות לזריחה לשקיעה למשיכיר לצאת גאונים וכו
         # עושים כאן רוורס לזמנים עצמם כי אחר כך עושים רוורס לכל מערך הזמנים
         # עדיין יש בעיה אם בוחרים בשיטת רבינו תם 16 בבוקר ו- 4 בערב
-        zmanim_list = [
+        # סדר הזמנים בתוך השורה משתנה מווינדוס ללינוקס בגלל כיווני תצוגה שלא קשורים אלי  
+        if is_windows:
+            hc_zmanim_list = [
+                #["זמנים בשעון רגיל - וכן שעונים כדלהלן"],
+                [f"({reverse(Halachic_method_MGA.get())})   עלות השחר:   {reverse(format_dt(Today_SR_MGA))}"],
+                [f"({reverse(settings_dict['misheiacir_deg'])})   זמן ציצית (משיכיר):   {reverse(format_dt(misheiakir))}"],
+                [f"({reverse(Halachic_method_GRA.get())})   זריחה:   {reverse(format_dt(Today_SR))}"],
+                [f'סוזק"ש מגא: {reverse(format_dt(sozkash_mga))}  |  גרא: {reverse(format_dt(sozkash_gra))}'], 
+                [f'סוז"ת מגא: {reverse(format_dt(sozat_mga))}  |  גרא: {reverse(format_dt(sozat_gra))}'],
+                [f"חצות היום (וכנגדו בלילה): {reverse(format_dt(day_transit))}"], # שמש באזימוט 180. או טיפה פחות מדוייק: format_dt(chatzot)
+                [f"מנחה גדולה: {reverse(format_dt(mincha_gedola))} | קטנה: {reverse(format_dt(mincha_ketana))}"],
+                [f"פלג המנחה: {reverse(format_dt(pelag_hamincha))}"],
+                [f"({reverse(Halachic_method_GRA.get())})   שקיעה:   {reverse(format_dt(Today_SS))}"],
+                [f"({reverse(settings_dict['hacochavim_deg'])})   צאת הכוכבים:   {reverse(format_dt(tset_hacochavim_geonim))}"],
+                [f"({reverse(Halachic_method_MGA.get())})   רבינו תם:   {reverse(format_dt(Today_SS_MGA))}"],                         
+            ]
+            
+        else:
+            
+            hc_zmanim_list = [
             #["זמנים בשעון רגיל - וכן שעונים כדלהלן"],
             [f"עלות השחר:   {reverse(format_dt(Today_SR_MGA))}   ({reverse(Halachic_method_MGA.get())})"],
             [f"זמן ציצית (משיכיר):   {reverse(format_dt(misheiakir))}   ({reverse(settings_dict['misheiacir_deg'])})"],
@@ -3589,15 +3605,14 @@ def all_calculations():
             [f'סוז"ת מגא: {reverse(format_dt(sozat_mga))} | גרא: {reverse(format_dt(sozat_gra))}'],
             [f"חצות היום (וכנגדו בלילה): {reverse(format_dt(day_transit))}"], # שמש באזימוט 180. או טיפה פחות מדוייק: format_dt(chatzot)
             [f"מנחה גדולה: {reverse(format_dt(mincha_gedola))} | קטנה: {reverse(format_dt(mincha_ketana))}"],
-            [f"פלג המנחה - {reverse(format_dt(pelag_hamincha))}"],
+            [f"פלג המנחה: {reverse(format_dt(pelag_hamincha))}"],
             [f"שקיעה:   {reverse(format_dt(Today_SS))}   ({reverse(Halachic_method_GRA.get())})"],
             [f"צאת הכוכבים:   {reverse(format_dt(tset_hacochavim_geonim))}   ({reverse(settings_dict['hacochavim_deg'])})"],
-            [f"רבינו תם:   {reverse(format_dt(Today_SS_MGA))}   ({reverse(Halachic_method_MGA.get())})"],
-                       
+            [f"רבינו תם:   {reverse(format_dt(Today_SS_MGA))}   ({reverse(Halachic_method_MGA.get())})"],                      
         ]
+      
         
-              
-    
+         
     ############################################################################################################################################################
     # מכאן והלאה עושים תמיד גם כשלא צריך עדכון כי החותמת טובה
     
