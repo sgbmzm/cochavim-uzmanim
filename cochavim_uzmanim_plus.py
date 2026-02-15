@@ -3529,15 +3529,7 @@ def all_calculations():
             Today_SR_MGA, Today_SS_MGA, LAST_SS_MGA, NEXT_SR_MGA = [None] * 4
             
         ##############################################################################
- 
-        try: 
-            # חישוב מתי הייתה השקיעה האחרונה של מינוס 0.833 באמצעות פונקציית חישוב זריחות ושקיעות
-            _,LAST_SS_0_833,_,_,_,_ = calculate_rising_seting(time,location,location_timezone,horizon=-0.833, body="sun",PLUS_MINUS = "MINUS")          
-        except IndexError:            
-            LAST_SS_0_833 = None
-            
-        #############################################################################
-        
+      
         try:
             # חישוב מתי הייתה השקיעה האחרונה של מינוס 0.833 באמצעות פונקציית חישוב זריחות ושקיעות
             _,tset_hacochavim_geonim,_,_,_,_ = calculate_rising_seting(time,location,location_timezone,horizon=settings_dict["hacochavim_deg"], body="sun",PLUS_MINUS = "NONE")        
@@ -3632,15 +3624,9 @@ def all_calculations():
     print_minutes_in_temporal_hour_MGA.set(convert_seconds(seconds_in_temporal_hour_MGA))
        
     ####################################################################
-            
-    if LAST_SS_0_833:
-        # חישוב כמה שניות עברו מהשקיעה האחרונה 0.833- שהייתה ועד עכשיו
-        seconds_from_last_sunset = (time - LAST_SS_0_833).total_seconds()
-        # החזרת והדפסת סטרינג מעוצב של שעות דקות ושניות שעברו מהשקיעה באמצעות פונקציית המרת שנייות
-        print_hours_from_last_sunset.set(convert_seconds(seconds_from_last_sunset, to_hours=True))
-    else:
-        print_hours_from_last_sunset.set("-- : -- : --")
-
+    # חישוב השניות שעברו מהשקיעה האחרונה
+    seconds_since_last_sunset = (time - (LAST_SS if time < Today_SS else Today_SS)).total_seconds() if LAST_SS and Today_SS else None 
+    print_hours_from_last_sunset.set(convert_seconds(seconds_since_last_sunset, to_hours=True))        
     ####################################################################
     
     # ניסיון לחישוב משוואת הזמן והדפסתה
@@ -5588,7 +5574,7 @@ def print_halachic_times():
     elif choice_print.get() == "PREVIOUS_LAST_MOON":
         ph_times.after(5,txt2_add_last_moon(month = "MINUS"))
     elif choice_print.get() == "STARS_EVENING":
-        ph_times.after(5,txt2_add_all_stars())
+        ph_times.after(5,txt2_add_stars(which = "evening"))
     elif choice_print.get() == "STARS_MORNING":
         ph_times.after(5,txt2_add_stars(which = "morning"))
     elif choice_print.get() == "ALL_BODYS_NOW":
@@ -5811,7 +5797,7 @@ def export_calendar_halacha_times():
         # עבור כל תאריך במערך התאריכים
         for date in all_dates:
 
-            time = location_timezone.localize(date)
+            time = date.replace(tzinfo=location_timezone)
             time = time.replace(hour=0, minute=0, second=0, microsecond=0) # חשוב מאוד להתחיל את החישובים בתחילת היממה
 
             # הגדרת תאריך עברי מקביל לתאריך הלועזי, ולמחרתו
@@ -6625,7 +6611,7 @@ def export_calendar_moons(first_last = "first", events_to_print = "הכל"):
             # עבור כל תאריך טו בחודש במערך התאריכים
             for date in all_dates:
                 
-                time = location_timezone.localize(date)
+                time = date.replace(tzinfo=location_timezone)
                 
                 # חישוב שמות החודש והשנה העבריים שעבורם יבוצעו החישובים
                 # הערה: במקרה של ירח ראשון, החודש העברי שעבורו מחושבת הראייה הוא ראש החודש הבא לאחר טו לחודש ולכן מדלגים 30 יום קדימה כדי להיות בחודש הבא
@@ -6649,9 +6635,9 @@ def export_calendar_moons(first_last = "first", events_to_print = "הכל"):
                 
                 # הוספת שורה למערך עבור זמן מולד ירח אמיתי
                 if first_last == "first":
-                    moons_zmanim.append([f'מידע לקראת חודש: {heb_month_year_for_print}    פרטי מולד ירח אמיתי לחודש זה:    תאריך עברי: {hitkabzut_heb_for_print}    תאריך גרגוריאני: {hitkabzut:%d/%m/%Y}    בשעה: {hitkabzut:%H:%M:%S}    בשעת גריניץ: {hitkabzut.astimezone(timezone("utc")):%H:%M:%S}    יום יוליאני: {cu_to_skyfield_time(hitkabzut).tdb :02.6f}    להלן פרטי ראיית הירח הראשון'])
+                    moons_zmanim.append([f'מידע לקראת חודש: {heb_month_year_for_print}    פרטי מולד ירח אמיתי לחודש זה:    תאריך עברי: {hitkabzut_heb_for_print}    תאריך גרגוריאני: {hitkabzut:%d/%m/%Y}    בשעה: {hitkabzut:%H:%M:%S}    בשעת גריניץ: {hitkabzut.astimezone(ZoneInfo("UTC")):%H:%M:%S}    יום יוליאני: {cu_to_skyfield_time(hitkabzut).tdb :02.6f}    להלן פרטי ראיית הירח הראשון'])
                 else:
-                    moons_zmanim.append([f'מידע לסיום חודש: {heb_month_year_for_print}    פרטי מולד ירח אמיתי לחודש הבא:    תאריך עברי: {hitkabzut_heb_for_print}    תאריך גרגוריאני: {hitkabzut:%d/%m/%Y}    בשעה: {hitkabzut:%H:%M:%S}    בשעת גריניץ: {hitkabzut.astimezone(timezone("utc")):%H:%M:%S}    יום יוליאני: {cu_to_skyfield_time(hitkabzut).tdb :02.6f}    להלן פרטי ראיית הירח האחרון'])
+                    moons_zmanim.append([f'מידע לסיום חודש: {heb_month_year_for_print}    פרטי מולד ירח אמיתי לחודש הבא:    תאריך עברי: {hitkabzut_heb_for_print}    תאריך גרגוריאני: {hitkabzut:%d/%m/%Y}    בשעה: {hitkabzut:%H:%M:%S}    בשעת גריניץ: {hitkabzut.astimezone(ZoneInfo("UTC")):%H:%M:%S}    יום יוליאני: {cu_to_skyfield_time(hitkabzut).tdb :02.6f}    להלן פרטי ראיית הירח האחרון'])
                 
                 # הוספת שורה למערך עבור כותרות הטורים
                 moons_zmanim.append(first_moon_zmanim_names if first_last == "first" else last_moon_zmanim_names)
@@ -10088,5 +10074,6 @@ if __name__ == '__main__':
     #---------------------------------------------
     # בין אם יש רישיון ובין אם אין רישיון חייבת להיות לולאה אינסופית על החלון הראשי כך
     ws.mainloop()
+
 
 
