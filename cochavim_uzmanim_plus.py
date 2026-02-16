@@ -2632,9 +2632,9 @@ def halacha_clock():
     
     city_id = canvas.create_text(160 * scale, 10 * scale, text="", fill=hw_green, font=scaled_font("miriam", 12, "bold"))
     # איזור תאריך עברי
-    heb_date_rect_id = canvas.create_rectangle(0, 18 * scale, screen_width, 38 * scale, fill="black")
-    heb_date_id = canvas.create_text(160 * scale, 25 * scale, text="", fill="white", font=scaled_font("miriam", 14, "bold"))
-    holiday_id = canvas.create_text(160 * scale, 38 * scale, text="", fill=hw_labels_color, font=scaled_font("miriam", 8, "bold"))
+    heb_date_rect_id = canvas.create_rectangle(0, 20 * scale, screen_width, 38 * scale, fill="black")
+    heb_date_id = canvas.create_text(160 * scale, 28 * scale, text="", fill="white", font=scaled_font("miriam", 14, "bold"))
+    holiday_id = canvas.create_text(160 * scale, 39 * scale, text="", fill="magenta", font=scaled_font("miriam", 6, "bold"))
     canvas.create_line(0, 42 * scale, screen_width, 42 * scale, fill="yellow")
 
     # איזור שעה זמנית גרא ומגא
@@ -10097,6 +10097,7 @@ if __name__ == '__main__':
     #---------------------------------------------
     # בין אם יש רישיון ובין אם אין רישיון חייבת להיות לולאה אינסופית על החלון הראשי כך
     ws.mainloop()
+
 
 
 
