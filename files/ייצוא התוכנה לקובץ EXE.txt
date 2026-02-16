@@ -18,3 +18,5 @@ pyinstaller cochavim_uzmanim_plus_dir.spec
 
 יצירת קובץ מיפרט
 pyi-makespec cochavim_uzmanim_plus.py
+
+אם עושים תוכנה בתיקייה (cochavim_uzmanim_plus_dir), מריצים אחר כך את הסריפט של inno לייצוא התוכנה לקובץ התקנה. הסקריפט צריך להיות בתיקייה שיש בה את תיקיית cochavim_uzmanim_plus_dir
