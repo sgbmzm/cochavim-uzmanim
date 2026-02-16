@@ -574,7 +574,7 @@ cu_screenheight = 768
 cu_scaling = 1.32 # כנראה המקורי היה 1.3 אבל למעשה בחרתי 1.32 כי המקורי עשה בעיות וזה כנראה פועל היטב במחשבים גדולים
 
 # תאריך גרסת התוכנה הראשית
-cu_version_date = dt.date(2026,2,15)
+cu_version_date = dt.date(2026,2,16)
 
 # פונקצייה שמחזירה שם יחד עם מיקום של קובץ בתיקיית תוכנת כוכבים וזמנים
 '''
@@ -1805,7 +1805,7 @@ def start_cu_dir_path():
 
 # פונקצייה לפתיחת אתר האינטרנט של כוכבים וזמנים באמצעות דפדפן ברירת המחדל של המשתמש
 def open_cu_website():
-    cu_url = "http://sites.google.com/view/cochavim-uzmanim/"
+    cu_url = "https://sgbmzm.github.io/cochavim-uzmanim/"
     webbrowser.open(cu_url)
 
     
