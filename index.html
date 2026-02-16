@@ -22,20 +22,10 @@
             line-height: 1.6;
         }
 
-        header {
-            background-color: var(--primary-color);
-            color: white;
-            padding: 60px 20px;
-            text-align: center;
-        }
-
-        h1 { margin: 0; font-size: 2.8rem; font-weight: 300; }
-        h2.section-title { color: var(--primary-color); border-bottom: 2px solid #eee; padding-bottom: 8px; margin-top: 30px; font-size: 1.5rem; }
-
         .container {
             max-width: 900px;
-            margin: 50px auto;
-            padding: 40px;
+            margin: 15px auto 50px auto; /* צמצמתי את הרווח העליון */
+            padding: 20px 40px;           /* צמצמתי את ה-padding העליון */
             background: white;
             border-radius: 8px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
@@ -84,7 +74,7 @@
             border-radius: 8px;
             padding: 15px 20px;
             margin-bottom: 20px; 
-	    width: 95%;
+            width: 95%;
             text-align: center;
             box-shadow: 0 2px 6px rgba(0,0,0,0.15);
         }
@@ -108,17 +98,22 @@
             h2.section-title { font-size: 1.3rem; }
             .support-box { width: 100%; }
         }
+
+        /* הסרת מרווח ברירת מחדל של H1 ו-P */
+        .main-header h1 { margin-top: 0; }
+        .main-header p { margin-top: 0; }
     </style>
 </head>
 <body>
 
-<header>
-    <h1>כוכבים וזמנים פלוס / שעון ההלכה</h1>
-    <p>מאת הרב ד"ר שמחה גרשון בורר</p>
-</header>
-
 <div class="container">
-    <h2 style="text-align: center; color: #1e6c93; font-size: 1.4rem; margin-bottom: 30px;">
+    <!-- כותרת גדולה בתוך הקונטיינר -->
+    <div class="main-header" style="text-align: center; margin-bottom: 30px;">
+        <h1 style="font-size: 2.5rem; font-weight: bold; margin-bottom: 5px; color: #1e6c93;">כוכבים וזמנים פלוס / שעון ההלכה</h1>
+        <p style="font-size: 1.1rem; font-weight: 600; color: #555;">מאת הרב ד"ר שמחה גרשון בורר</p>
+    </div>
+    
+    <h2 style="text-align: center; color: #1e6c93; font-size: 1.4rem; margin-bottom: 15px;">
         תכונות עיקריות של התוכנה
     </h2>
 
@@ -136,8 +131,8 @@
             <a href="https://github.com/sgbmzm/cochavim-uzmanim/releases/download/cochavim_uzmanim_plus/cochavim_uzmanim_plus.exe" class="btn btn-win">
                 הורד למחשב (EXE)
             </a>
-            <p style="font-size: 0.8rem;">דרישות מערכת: Windows 10 ומעלה, 64bit. </p>
-            <p style="font-size: 0.8rem;">אין צורך בהתקנה. לחצו פעמיים על סמל התוכנה והמתינו לטעינת התוכנה.</p>
+            <p style="font-size: 0.8rem;">דרישות מערכת:<br> Windows 10 ומעלה (ייתכן שיעבוד גם בווינדוס 7), 64bit. </p>
+            <p style="font-size: 0.8rem;">אין צורך בהתקנה. לחצו פעמיים על הקובץ והמתינו לטעינה.</p>
         </div>
 
         <div class="download-card android-card">
@@ -189,7 +184,7 @@
             <li>שעון שעה זמנית כפול במסך הראשי</li>
             <li>שיפורים חשובים בשעון ההלכה כולל אפשרות להציג מידע על כוכבי לכת</li>
             <li>שיפורי יציבות ותיקוני באגים בממשק המשתמש.</li>
-	    <li>מעבר למודל שבו החלפת מיקום אפשרית רק לאחר מעבר לגרסה מלאה.</li>
+            <li>מעבר למודל שבו החלפת מיקום אפשרית רק לאחר מעבר לגרסה מלאה.</li>
         </ul>
     </div>
 
