@@ -1,7 +1,7 @@
 # cochavim-uzmanim
 
 ## License  
-**The file `cochavim_uzmanim_plus` is for personal use only!**  
+**The file `cochavim_uzmanim_plus.py` is for personal use only!**  
 **Modification is strictly prohibited.** You may use it as-is, but you may not edit, modify, or alter its content.  
 **Commercial use is forbidden.** If you wish to use `cochavim_uzmanim_plus` for business or organizational purposes, please contact the author.  
 
