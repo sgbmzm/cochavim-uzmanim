@@ -1,10 +1,10 @@
-#define AppName "Cochavim Uzmanim Plus"
+#define AppName "cochavim_uzmanim_plus"
 
 [Setup]
 AppName={#AppName}
 AppVersion=1.0
 DefaultDirName={commonpf}\{#AppName}
-OutputBaseFilename=התקנת תוכנת כוכבים וזמנים
+OutputBaseFilename={#AppName}
 Compression=lzma
 SolidCompression=yes
 CreateAppDir=yes
