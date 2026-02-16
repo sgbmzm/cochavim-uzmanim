@@ -8989,6 +8989,13 @@ def edit_settings():
 
     # -----------------------------
     edit_win = Toplevel(ws)
+    
+    #edit_win.geometry(f"{round(500*magnification_factor)}x{round(200*magnification_factor)}+{round(70*magnification_factor)}+{round(200*magnification_factor)}")
+    # מיקום חלון הוספת מיקום מעל החלון הראשי
+    edit_win.wm_transient(ws)
+    # הגדרת צבע לכל החלון
+    edit_win.configure(bg=cu_color)
+
     edit_win.title("עריכת הגדרות" if is_heb else "Edit Settings")
     Label(edit_win,text=reverse("עריכת הגדרות ושיטות זמנים") if is_heb else "Edit Settings and Time Methods",font=("Arial", 12, "bold")).pack()
     Label(edit_win,text=reverse("הערכים המוצגים הם הערכים הנוכחיים") if is_heb else "The displayed values are the current settings",font=("Arial", 10)).pack()
@@ -9053,7 +9060,7 @@ def edit_settings():
         frame = ttk.Frame(edit_win)
         frame.pack(fill="x", padx=10, pady=5)
         display_name = names_hebrew.get(key, key) if is_heb else key
-        ttk.Label(frame, text=display_name, width=25).pack(side="right")
+        ttk.Label(frame, text=display_name, width=35).pack(side="right")
 
         # בניית רשימת הערכים להצגה
         if key in ["is_language_hebrew", "is_zoomed_screen", "start_halacha_clock", "halacha_clock_labels", "halacha_clock_planets"]:
