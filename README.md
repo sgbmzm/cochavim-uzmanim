@@ -1,5 +1,5 @@
 # cochavim-uzmanim
-
+https://sgbmzm.github.io/cochavim-uzmanim/
 ## License  
 **The file `cochavim_uzmanim_plus.py` is for personal use only!**  
 **Modification is strictly prohibited.** You may use it as-is, but you may not edit, modify, or alter its content.  
