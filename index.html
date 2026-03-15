@@ -19,8 +19,8 @@
     <style>
         :root {
             --primary-color: #1e6c93;
-            --accent-color: #226e93;
-            --android-green: #3DDC84;
+            --accent-color: #007BFF;
+            --android-green: #26a96b; 
             --bg-color: #f2f2f2;
             --text-color: #333;
         }
@@ -42,6 +42,13 @@
             border-radius: 8px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
+        
+        .os-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
 
         p {
             line-height: 1.8;
@@ -50,19 +57,25 @@
 
         .btn {
             display: inline-block;
-            padding: 12px 25px;
+            padding: 12px 12px;
             text-decoration: none;
             border-radius: 5px;
             font-weight: bold;
-            color: white;
+            color: black;
             margin-top: 15px;
             transition: all 0.3s;
+            text-align: center;
         }
+        
+        .btn i{
+            display:block;
+        }
+
 
         .btn:hover { transform: translateY(-3px); }
 
-        .btn-win { background-color: var(--accent-color); }
-        .btn-android { background-color: #00875f; }
+        .btn-win { background-color: #cfe8f1; }
+        .btn-android { background-color:  #b3f0c9;}
         .btn-support { background-color: #f39c12; }
 
         .download-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin: 20px 0; }
@@ -138,26 +151,33 @@
     <div class="download-grid">
         
 		<div class="download-card win-card">
-			<h3>💻 עבור המחשב</h3>
-            <a href="https://github.com/sgbmzm/cochavim-uzmanim/releases/download/cochavim_uzmanim_plus/cochavim_uzmanim_plus_win_x64_installer.exe" class="btn btn-win">
-                <i class="fa-brands fa-windows"></i> הורד ל-Windows
+			<h3>💻 הורדות עבור המחשב</h3>
+			<div class="os-buttons">
+            <a href="https://github.com/sgbmzm/cochavim-uzmanim/releases/download/cochavim_uzmanim_plus/cochavim_uzmanim_plus_win_x64_installer.exe" target="_blank" class="btn btn-win">
+                <i class="fa-brands fa-windows"></i> Windows
             </a>
             
-			<a href="https://github.com/sgbmzm/cochavim-uzmanim/releases/download/cochavim_uzmanim_plus/cochavim_uzmanim_plus_linux_x64_onefile" class="btn btn-win">
-                <i class="fa-brands fa-ubuntu"></i> הורד ל-Ubuntu
+			<a href="https://github.com/sgbmzm/cochavim-uzmanim/releases/download/cochavim_uzmanim_plus/cochavim_uzmanim_plus_linux_x64_onefile" target="_blank" class="btn btn-win">
+                <i class="fa-brands fa-linux"></i> Linux
             </a>
-            <a href="https://github.com/sgbmzm/cochavim-uzmanim/releases/tag/cochavim_uzmanim_plus" class="btn btn-win">
-                </i> כל אפשרויות ההורדה
+            <a href="https://github.com/sgbmzm/cochavim-uzmanim/releases/download/cochavim_uzmanim_plus/cochavim_uzmanim_plus_mac_x64_onefile" target="_blank" class="btn btn-win">
+                <i class="fa-brands fa-apple"></i> Mac
             </a>
+            <a href="https://github.com/sgbmzm/cochavim-uzmanim/releases/tag/cochavim_uzmanim_plus" target="_blank" class="btn btn-win">
+                <i class="fa-solid fa-folder-open"></i> אפשרויות
+            </a>
+        </div>
         </div>
 
         <div class="download-card android-card">
-            <h3>📱 עבור אנדרואיד</h3>
+            <h3>📱 הורדות עבור אנדרואיד</h3>
             <a href="https://play.google.com/store/apps/details?id=com.sgbmzm.halachaclock" target="_blank" class="btn btn-android">
-                הורד מ-Google Play
+                <i class="fa-brands fa-google-play"></i>
+                Google Play
             </a>
 	   <a href="https://github.com/sgbmzm/cochavim-uzmanim/releases/download/cochavim_uzmanim_plus/halachaclock.apk" target="_blank" class="btn btn-android">
-                הורד APK מ-github
+	   <i class="fa-brands fa-android"></i>
+                הורד APK
             </a>
 		<p style="font-size: 0.8rem;"> <strong>גרסה: 20</strong></p>
         </div>
@@ -166,6 +186,7 @@
         <div class="download-card" style="border-right: 6px solid #8e44ad; background-color: #f4f0f7;">
         <h3>שעון ההלכה קטן לכיס<br> עבור מי שאין לו אנדרואיד </h3>
         <img src="hc_t_s3.png" alt="שעון הלכה פיזי ESP-32" style="max-width:220px; margin: 10px 0; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.2);">
+        <p style="font-size: 0.8rem;">אורך: 6.5 ס"מ, רוחב: 3 ס"מ, עובי: 2-2.5</p>
         <p style="font-size: 0.8rem;">ליצירת קשר לרכישה (200 שח): <strong>sgbmzm@gmail.com</strong></p>
         </div>
 
@@ -187,7 +208,7 @@
     <div class="extra-files">
         <a href="https://github.com/sgbmzm/cochavim-uzmanim/releases/download/cochavim_uzmanim_plus/de441s.bsp" class="file-link">📄 אֶפְאֶמְאֶרִיס מורחב (de441s.bsp)</a>
         <a href="https://github.com/sgbmzm/cochavim-uzmanim/releases/download/cochavim_uzmanim_plus/de440.bsp" class="file-link">📄 אֶפְאֶמְאֶרִיס מקורי (de440.bsp)</a>
-        <a href="https://youtu.be/Q08ss_Fdemw" class="file-link">🎥 מדריך יוטיוב (גרסה קודמת)</a>
+        <a href="https://youtu.be/Q08ss_Fdemw" target="_blank" class="file-link">🎥 מדריך יוטיוב (גרסה קודמת)</a>
     </div>
 
     <h2 class="section-title">הערות חשובות</h2>
