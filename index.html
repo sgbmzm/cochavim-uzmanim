@@ -221,7 +221,8 @@
 
     <h2 class="section-title">מה חדש? (Changelog)</h2>
     <div class="changelog">
-        <strong>עדכון אחרון (16/02/2026):</strong>
+		<!-- תאריך הגרסה האחרונה נקבע לפי סקריפט מתוך הקובץ שבו מידע על הגרסה האחרונה. הסקריפט נמצא בסוף הקוד -->
+        <strong>עדכון אחרון (<span id="cu-date">טוען...</span>):</strong>
         <ul>
             <li>שעון שעה זמנית כפול במסך הראשי</li>
             <li>שיפורים חשובים בשעון ההלכה כולל אפשרות להציג מידע על כוכבי לכת</li>
@@ -248,6 +249,18 @@
 <div class="footer">
     האתר מוגש באמצעות GitHub Pages
 </div>
+
+<!-- סקריפט שקורא את תאריך הגרסה האחרונה -->	
+<script>
+fetch("cu_version.txt")
+  .then(response => response.text())
+  .then(text => {
+    document.getElementById("cu-date").innerText = text.trim();
+  })
+  .catch(() => {
+    document.getElementById("cu-date").innerText = "לא זמין";
+  });
+</script>
 
 </body>
 </html>
