@@ -255,7 +255,7 @@
 
 <!-- סקריפט שקורא את תאריך הגרסה האחרונה -->	
 <script>
-fetch("cu_version.txt")
+fetch("cu_version.txt?t=" + Date.now(), { cache: "no-store" })
   .then(response => response.text())
   .then(text => {
     document.getElementById("cu-date").innerText = text.trim();
